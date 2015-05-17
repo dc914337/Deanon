@@ -22,8 +22,7 @@ namespace Deanon
             Logger.Out("All done!", MessageType.Verbose);
             Console.ReadLine();
         }
-
-
+        
 
         static async Task Main2(string[] args)
         {
