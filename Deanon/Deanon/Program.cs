@@ -30,8 +30,7 @@ namespace Deanon
             //Logger.AddTypeToUotput(MessageType.Debug);
             Logger.AddTypeToUotput(MessageType.Error);
             Logger.AddTypeToUotput(MessageType.Verbose);
-
-
+        
             DbWorker dbWorker;
             Console.WriteLine("Enter password:");
             dbWorker = new DbWorker("localhost", 7474, "neo4j", Console.ReadLine());
