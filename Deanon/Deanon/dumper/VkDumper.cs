@@ -16,16 +16,13 @@ using VKSharp.Data.Parameters;
 using VKSharp.Data.Request;
 using MessageType = Deanon.logger.MessageType;
 
-//using VKSharp;
-//using VKSharp.Data.Parameters;
 
 namespace Deanon.dumper
 {
     class VkDumper
     {
-
-        private DbWorker _dbWorker;
-        private VkWorker _vkWorker;
+        private readonly DbWorker _dbWorker;
+        private readonly VkWorker _vkWorker;
 
 
         public VkDumper(DbWorker dbWorker, VkWorker vkWorker)
@@ -34,7 +31,6 @@ namespace Deanon.dumper
             _dbWorker.Connect();
             _vkWorker = vkWorker;
         }
-
 
         public async Task DumpUser(int userId, DumpingDepth depth)
         {
@@ -129,7 +125,6 @@ namespace Deanon.dumper
                 Logger.Out("USER: {0} \r\n Message: {1}", MessageType.Error, user.Url, ex.Message);
             }
         }
-
 
 
         private async Task DumpFriendsRecursive(Person user, DumpingDepth depth, Dictionary<int, Person> trace)
