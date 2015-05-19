@@ -91,7 +91,8 @@ namespace Deanon.vk
                 {
                     pointer = 0;
                     Sleep();
-                    comments.AddRange((await GetManyComments(userId, postIdsDose)).Items);
+                    var manyCommentsEntity = await GetManyComments(userId, postIdsDose);
+                    comments.AddRange(manyCommentsEntity.Items);
                     postIdsDose.Clear();
                 }
             }
@@ -100,6 +101,7 @@ namespace Deanon.vk
                 Sleep();
                 comments.AddRange((await GetManyComments(userId, postIdsDose)).Items);
             }
+
 
             return comments;
         }
@@ -223,7 +225,8 @@ namespace Deanon.vk
                 Parameters = parameters
             };
             Sleep();
-            return (await vk.Executor.ExecAsync(req)).Response;
+            var result = (await vk.Executor.ExecAsync(req)).Response;
+            return result;
         }
 
 

@@ -70,8 +70,6 @@
   <ItemGroup>
     <Compile Include="analyzer\DbGraphAnalyzer.cs" />
     <Compile Include="db\datamodels\classes\entities\Person.cs" />
-    <Compile Include="db\datamodels\classes\relationships\Friend.cs" />
-    <Compile Include="db\datamodels\classes\relationships\RelationData\InteractionData.cs" />
     <Compile Include="db\datamodels\Mapper.cs" />
     <Compile Include="db\DbWorker.cs" />
     <Compile Include="dumper\EnterType.cs" />

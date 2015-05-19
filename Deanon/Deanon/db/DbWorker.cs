@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq;
 using Deanon.db.datamodels.classes.entities;
-using Deanon.db.datamodels.classes.relationships;
-using Deanon.db.datamodels.classes.relationships.RelationData;
 using Deanon.dumper;
 using Deanon.logger;
 using Neo4jClient;
@@ -13,43 +11,43 @@ namespace Deanon.db
 {
     public class DbWorker
     {
-        private const String urlPattern = "http://{0}:{1}@{2}:{3}/db/data";
-        private GraphClient db;
+        private const String UrlPattern = "http://{0}:{1}@{2}:{3}/db/data";
+        private GraphClient _db;
 
 
         private readonly string connectionUri;
         public DbWorker(String address, int port, String user, String password)
         {
-            this.connectionUri = String.Format(urlPattern, user, password, address, port);
+            this.connectionUri = String.Format(UrlPattern, user, password, address, port);
         }
 
         public void Connect()
         {
-            db = new GraphClient(new Uri(connectionUri));
-            db.Connect();
+            _db = new GraphClient(new Uri(connectionUri));
+            _db.Connect();
             SetUp();
             Logger.Out("Succesfully connected to DB", MessageType.Debug);
         }
 
         private void SetUp()
         {
-            if (!db.CheckIndexExists("personIdIndex", IndexFor.Node))
+            if (!_db.CheckIndexExists("personIdIndex", IndexFor.Node))
             {
-                db.CreateIndex("personIdIndex", new IndexConfiguration() { Provider = IndexProvider.lucene, Type = IndexType.exact }, IndexFor.Node);
+                _db.CreateIndex("personIdIndex", new IndexConfiguration() { Provider = IndexProvider.lucene, Type = IndexType.exact }, IndexFor.Node);
             }
 
-            if (!db.CheckIndexExists("relationshipNameIndex", IndexFor.Relationship))
+            if (!_db.CheckIndexExists("relationshipNameIndex", IndexFor.Relationship))
             {
-                db.CreateIndex("relationshipNameIndex", new IndexConfiguration() { Provider = IndexProvider.lucene, Type = IndexType.exact }, IndexFor.Relationship);
+                _db.CreateIndex("relationshipNameIndex", new IndexConfiguration() { Provider = IndexProvider.lucene, Type = IndexType.exact }, IndexFor.Relationship);
             }
-            
+
         }
 
 
         public Node<Person> AddPerson(Person mainPerson)
         {
             Logger.Out("Adding person to DB: {0}", MessageType.Debug, mainPerson.Url);
-            return db.Cypher
+            return _db.Cypher
                 .Merge("(person:Person { Id: {id} })")
                 .OnCreate()
                 .Set("person = {person}")
@@ -67,7 +65,7 @@ namespace Deanon.db
         {
             Logger.Out("Adding potential friend to DB: {0}", MessageType.Debug, friend.Url);
 
-            var friendNode = db.Cypher
+            var friendNode = _db.Cypher
              .Merge("(person:Person { Id: {id} })")
              .OnCreate()
              .Set("person = {friend}")
@@ -80,7 +78,7 @@ namespace Deanon.db
              .Single();
 
             //create 
-            db.Cypher
+            _db.Cypher
                   .Match("(mainPerson:Person)", "(friendPerson:Person)")
                   .Where((Person mainPerson) => mainPerson.Id == main.Id)
                   .AndWhere((Person friendPerson) => friendPerson.Id == friend.Id)
@@ -88,6 +86,28 @@ namespace Deanon.db
                   .ExecuteWithoutResults();
 
             return friendNode;
+        }
+
+
+        //range 3
+        public Person[] GetPeopleFromMinCycles()
+        {
+            try
+            {
+
+                var query = _db
+                    .Cypher
+                    .Match("(a)-[*3]->(a)")
+                    .Return(a => a.As<Person>());
+                var res = query.Results.ToArray();
+                return res;
+            }
+            catch (Exception ex)
+            {
+                Logger.Out("Query error: {0}", MessageType.Error, ex.Message);
+                return null;
+            }
+
         }
     }
 

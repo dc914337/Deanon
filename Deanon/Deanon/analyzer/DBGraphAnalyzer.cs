@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Deanon.db;
+using Deanon.db.datamodels.classes.entities;
 
 namespace Deanon.analyzer
 {
@@ -15,6 +16,14 @@ namespace Deanon.analyzer
             _db = db;
         }
 
-        //public 
+        public Person[] GetPeopleInCycles()
+        {
+            var v = _db.GetPeopleFromMinCycles().GroupBy(a => a.Id).Select(b => b.First()).ToArray();
+            return v;
+        }
+
     }
+
+
+
 }

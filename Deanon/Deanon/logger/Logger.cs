@@ -17,7 +17,7 @@ namespace Deanon.logger
 
         public static void Out(String message, MessageType type, params Object[] parameters)
         {
-            if (ToOutput.Contains(type))
+           if (ToOutput.Contains(type))
                 Console.WriteLine(AddPrefix(type, String.Format(message, parameters)));
         }
 

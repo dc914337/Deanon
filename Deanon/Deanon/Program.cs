@@ -2,9 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Deanon.analyzer;
 using Deanon.db;
+using Deanon.db.datamodels.classes.entities;
 using Deanon.dumper;
 using Deanon.logger;
 using Deanon.vk;
@@ -23,6 +26,8 @@ namespace Deanon
         }
 
 
+
+
         private static VkWorker vkWorker;
         private static VkDumper dumper;
         static DbWorker dbWorker;
@@ -30,8 +35,20 @@ namespace Deanon
         static async Task Main2(string[] args)
         {
             Init();
-            await InitialDump();
-            ExtensionDump();
+            /*await dumper.DumpUser(268894603, new DumpingDepth(new List<Depth>()
+                {
+                    new Depth(EnterType.Friend,0),
+                     new Depth(EnterType.Follower, 0),
+                     new Depth(EnterType.Post, 1),
+                     new Depth(EnterType.Comments, 1),
+                    new Depth(EnterType.Likes, 1)
+                }));*/
+
+
+
+           
+            //await InitialDump();
+            ExpansionDump();
         }
 
         static void Init()
@@ -60,9 +77,9 @@ namespace Deanon
             sw.Start();
             await dumper.DumpUser(268894603, new DumpingDepth(new List<Depth>()
                 {
-                    new Depth(EnterType.Friend,2),
+                    new Depth(EnterType.Friend,3),
                      new Depth(EnterType.Follower, 2),
-                     new Depth(EnterType.Post, 2),
+                     new Depth(EnterType.Post, 1),
                      new Depth(EnterType.Comments, 1),
                     new Depth(EnterType.Likes, 1)
                 }));
@@ -70,11 +87,36 @@ namespace Deanon
             Logger.Out("Done in {0} seconds", MessageType.Verbose, sw.ElapsedMilliseconds / 1000);
         }
 
-        private static void ExtensionDump()
+        private static void ExpansionDump()
         {
+            DbGraphAnalyzer analyzer = new DbGraphAnalyzer(dbWorker);
+            var people = analyzer.GetPeopleInCycles();
+
+            int maxCount = people.Count();
+            int counter = 0;
+            foreach (var person in people)
+            {
+                Logger.Out("Current expansion is {0}%", MessageType.Verbose, 100 / maxCount * (++counter));
+                dumper.DumpUser(person.Id, new DumpingDepth(new List<Depth>()
+                {
+                    new Depth(EnterType.Friend,1),
+                     new Depth(EnterType.Follower, 1),
+                     new Depth(EnterType.Post, 0),
+                     new Depth(EnterType.Comments, 0),
+                    new Depth(EnterType.Likes, 0)
+                })).Wait();
+            }
 
         }
 
+
+
+
+
+       /* private Person[] GetFriends()
+        {
+
+        }*/
 
 
         /*
