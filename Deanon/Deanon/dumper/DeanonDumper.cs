@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 using Deanon.db;
 using Deanon.db.datamodels;
 using Deanon.db.datamodels.classes.entities;
+using Deanon.dumper.vk;
 using Deanon.logger;
-using Deanon.vk;
 using VKSharp;
 using VKSharp.Core.Entities;
 using VKSharp.Core.Enums;
@@ -19,23 +19,23 @@ using MessageType = Deanon.logger.MessageType;
 
 namespace Deanon.dumper
 {
-    class VkDumper
+    class DeanonDumper
     {
-        private readonly DbWorker _dbWorker;
-        private readonly VkWorker _vkWorker;
+        private readonly IDeanonDbWorker _neo4JWorker;
+        private readonly IDeanonSocNetworkWorker _vkWorker;
 
 
-        public VkDumper(DbWorker dbWorker, VkWorker vkWorker)
+        public DeanonDumper(IDeanonDbWorker neo4JWorker, IDeanonSocNetworkWorker vkWorker)
         {
-            _dbWorker = dbWorker;
-            _dbWorker.Connect();
+            _neo4JWorker = neo4JWorker;
+            _neo4JWorker.Connect();
             _vkWorker = vkWorker;
         }
 
         public async Task DumpUser(int userId, DumpingDepth depth)
         {
             var user = await _vkWorker.GetPerson(userId);
-            _dbWorker.AddPerson(user);
+            _neo4JWorker.AddPerson(user);
 
             await CollectPotentialFriendsRecursive(user, depth, new Dictionary<int, Person>());
         }
@@ -56,14 +56,14 @@ namespace Deanon.dumper
             //add to trace
             trace.Add(user.Id, user);
 
-            //add all friends that are not in db
+            //add all friends that are not in neo4J
             if (depth.Enter(EnterType.Friend))
             {
                 await DumpFriendsRecursive(user, depth, trace);
                 depth.StepOut();
             }
 
-            //add all followers that are not in db
+            //add all followers that are not in neo4J
             if (depth.Enter(EnterType.Follower))
             {
                 await DumpFollowersRecursive(user, depth, trace);
@@ -162,7 +162,7 @@ namespace Deanon.dumper
         {
             foreach (var pFriend in potentialFriends)
             {
-                _dbWorker.AddPotentialFriend(user, pFriend, type);
+                _neo4JWorker.AddPotentialFriend(user, pFriend, type);
                 await CollectPotentialFriendsRecursive(pFriend, depth, trace);
             }
         }

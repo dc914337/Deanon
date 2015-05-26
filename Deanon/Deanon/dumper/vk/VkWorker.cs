@@ -1,20 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Deanon.db.datamodels;
 using Deanon.db.datamodels.classes.entities;
-using Deanon.dumper;
 using VKSharp;
 using VKSharp.Core.Entities;
 using VKSharp.Data.Parameters;
 using VKSharp.Data.Request;
 
-namespace Deanon.vk
+namespace Deanon.dumper.vk
 {
-    class VkWorker
+    class VkWorker : IDeanonSocNetworkWorker
     {
         private readonly VkTokenRepository _tokenRepo;
         private const int PostsPerTime = 2500;
@@ -43,6 +41,7 @@ namespace Deanon.vk
                         userId
                     }))[0]);
         }
+
 
         public async Task<List<Person>> GetPeople(int[] userIds)
         {

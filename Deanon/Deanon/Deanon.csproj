@@ -71,16 +71,19 @@
     <Compile Include="analyzer\DbGraphAnalyzer.cs" />
     <Compile Include="db\datamodels\classes\entities\Person.cs" />
     <Compile Include="db\datamodels\Mapper.cs" />
-    <Compile Include="db\DbWorker.cs" />
+    <Compile Include="db\IDeanonDbWorker.cs" />
+    <Compile Include="db\Neo4JWorker.cs" />
+    <Compile Include="Deanon.cs" />
     <Compile Include="dumper\EnterType.cs" />
     <Compile Include="dumper\DumpingDepth.cs" />
-    <Compile Include="dumper\VkDumper.cs" />
+    <Compile Include="dumper\vk\IDeanonSocNetworkWorker.cs" />
+    <Compile Include="dumper\DeanonDumper.cs" />
     <Compile Include="logger\Logger.cs" />
     <Compile Include="logger\MessageType.cs" />
-    <Compile Include="vk\VkTokenRepository.cs" />
+    <Compile Include="dumper\vk\VkTokenRepository.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="vk\VkWorker.cs" />
+    <Compile Include="dumper\vk\VkWorker.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

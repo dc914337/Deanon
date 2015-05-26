@@ -9,14 +9,14 @@ using MessageType = Deanon.logger.MessageType;
 
 namespace Deanon.db
 {
-    public class DbWorker
+    public class Neo4JWorker : IDeanonDbWorker
     {
         private const String UrlPattern = "http://{0}:{1}@{2}:{3}/db/data";
         private GraphClient _db;
 
 
         private readonly string connectionUri;
-        public DbWorker(String address, int port, String user, String password)
+        public Neo4JWorker(String address, int port, String user, String password)
         {
             this.connectionUri = String.Format(UrlPattern, user, password, address, port);
         }
@@ -89,6 +89,34 @@ namespace Deanon.db
         }
 
 
+        public Node<Person> AddRelation(Person main, Person friend, EnterType type)
+        {
+            throw new NotImplementedException();
+            Logger.Out("Adding potential friend to DB: {0}", MessageType.Debug, friend.Url);
+
+            var friendNode = _db.Cypher
+             .Merge("(person:Person { Id: {id} })")
+             .OnCreate()
+             .Set("person = {friend}")
+             .WithParams(new
+             {
+                 id = friend.Id,
+                 friend
+             }).Return(person => person.Node<Person>())
+             .Results
+             .Single();
+
+            //create 
+            _db.Cypher
+                  .Match("(mainPerson:Person)", "(friendPerson:Person)")
+                  .Where((Person mainPerson) => mainPerson.Id == main.Id)
+                  .AndWhere((Person friendPerson) => friendPerson.Id == friend.Id)
+                  .CreateUnique("mainPerson-[:" + RelationString.ToString(type) + "]->friendPerson")
+                  .ExecuteWithoutResults();
+
+            return friendNode;
+        }
+
         //range 3
         public Person[] GetPeopleFromMinCycles()
         {
@@ -108,6 +136,64 @@ namespace Deanon.db
                 return null;
             }
 
+        }
+
+
+        public long[] GetAllUsersIds()
+        {
+            try
+            {
+
+                var query = _db
+                    .Cypher
+                    .Match("(a)")
+                    .Return(a => a.Id());
+                var res = query.Results.ToArray();
+                return res;
+            }
+            catch (Exception ex)
+            {
+                Logger.Out("Query error: {0}", MessageType.Error, ex.Message);
+                return null;
+            }
+        }
+
+        public Person[] GetAllPeople()
+        {
+            try
+            {
+                var query = _db
+                    .Cypher
+                    .Match("(a)")
+                    .Return(a => a.As<Person>());
+                var res = query.Results.ToArray();
+                return res;
+            }
+            catch (Exception ex)
+            {
+                Logger.Out("Query error: {0}", MessageType.Error, ex.Message);
+                return null;
+            }
+        }
+
+        public Person[] GetPeopleWithoutOutRelations()
+        {
+            //MATCH (a)-->(l) WHERE NOT (l)-->() return l
+            try
+            {
+                var query = _db
+                    .Cypher
+                    .Match("(a)-->(l)")
+                    .Where("NOT (l)-->()")
+                    .Return(l => l.As<Person>());
+                var res = query.Results.ToArray();
+                return res;
+            }
+            catch (Exception ex)
+            {
+                Logger.Out("Query error: {0}", MessageType.Error, ex.Message);
+                return null;
+            }
         }
     }
 
