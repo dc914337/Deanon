@@ -48,9 +48,6 @@
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Newtonsoft.JsonVk">
-      <HintPath>..\packages\kasthack.vksharp.0.5.13.29907\lib\net45\Newtonsoft.JsonVk.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net.Http" />
@@ -74,6 +71,7 @@
     <Compile Include="db\IDeanonDbWorker.cs" />
     <Compile Include="db\Neo4JWorker.cs" />
     <Compile Include="Deanon.cs" />
+    <Compile Include="dumper\cache\Cache.cs" />
     <Compile Include="dumper\EnterType.cs" />
     <Compile Include="dumper\DumpingDepth.cs" />
     <Compile Include="dumper\vk\IDeanonSocNetworkWorker.cs" />

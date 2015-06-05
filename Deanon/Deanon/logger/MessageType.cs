@@ -10,6 +10,8 @@ namespace Deanon.logger
     {
         Error,
         Verbose,
-        Debug
+        Debug,
+        DebugCache,
+        Time
     }
 }

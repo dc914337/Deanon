@@ -31,16 +31,9 @@ namespace Deanon.db
 
         private void SetUp()
         {
-            if (!_db.CheckIndexExists("personIdIndex", IndexFor.Node))
-            {
-                _db.CreateIndex("personIdIndex", new IndexConfiguration() { Provider = IndexProvider.lucene, Type = IndexType.exact }, IndexFor.Node);
-            }
-
-            if (!_db.CheckIndexExists("relationshipNameIndex", IndexFor.Relationship))
-            {
-                _db.CreateIndex("relationshipNameIndex", new IndexConfiguration() { Provider = IndexProvider.lucene, Type = IndexType.exact }, IndexFor.Relationship);
-            }
-
+            _db.Cypher
+                    .Create("INDEX ON :Person(Id)")
+                    .ExecuteWithoutResults();
         }
 
 
@@ -61,22 +54,9 @@ namespace Deanon.db
         }
 
 
-        public Node<Person> AddPotentialFriend(Person main, Person friend, EnterType type)
+        public void AddRelation(Person main, Person friend, EnterType type)
         {
-            Logger.Out("Adding potential friend to DB: {0}", MessageType.Debug, friend.Url);
-
-            var friendNode = _db.Cypher
-             .Merge("(person:Person { Id: {id} })")
-             .OnCreate()
-             .Set("person = {friend}")
-             .WithParams(new
-             {
-                 id = friend.Id,
-                 friend
-             }).Return(person => person.Node<Person>())
-             .Results
-             .Single();
-
+            Logger.Out("Adding relation to DB: {0} --> {1}", MessageType.Debug, main.Url, friend.Url);
             //create 
             _db.Cypher
                   .Match("(mainPerson:Person)", "(friendPerson:Person)")
@@ -84,37 +64,6 @@ namespace Deanon.db
                   .AndWhere((Person friendPerson) => friendPerson.Id == friend.Id)
                   .CreateUnique("mainPerson-[:" + RelationString.ToString(type) + "]->friendPerson")
                   .ExecuteWithoutResults();
-
-            return friendNode;
-        }
-
-
-        public Node<Person> AddRelation(Person main, Person friend, EnterType type)
-        {
-            throw new NotImplementedException();
-            Logger.Out("Adding potential friend to DB: {0}", MessageType.Debug, friend.Url);
-
-            var friendNode = _db.Cypher
-             .Merge("(person:Person { Id: {id} })")
-             .OnCreate()
-             .Set("person = {friend}")
-             .WithParams(new
-             {
-                 id = friend.Id,
-                 friend
-             }).Return(person => person.Node<Person>())
-             .Results
-             .Single();
-
-            //create 
-            _db.Cypher
-                  .Match("(mainPerson:Person)", "(friendPerson:Person)")
-                  .Where((Person mainPerson) => mainPerson.Id == main.Id)
-                  .AndWhere((Person friendPerson) => friendPerson.Id == friend.Id)
-                  .CreateUnique("mainPerson-[:" + RelationString.ToString(type) + "]->friendPerson")
-                  .ExecuteWithoutResults();
-
-            return friendNode;
         }
 
         //range 3
@@ -126,7 +75,7 @@ namespace Deanon.db
                 var query = _db
                     .Cypher
                     .Match("(a)-[*3]->(a)")
-                    .Return(a => a.As<Person>());
+                    .ReturnDistinct(a => a.As<Person>());
                 var res = query.Results.ToArray();
                 return res;
             }
@@ -139,7 +88,7 @@ namespace Deanon.db
         }
 
 
-        public long[] GetAllUsersIds()
+        public int[] GetAllUsersIds()
         {
             try
             {
@@ -147,7 +96,7 @@ namespace Deanon.db
                 var query = _db
                     .Cypher
                     .Match("(a)")
-                    .Return(a => a.Id());
+                    .ReturnDistinct(a => a.As<Person>().Id);
                 var res = query.Results.ToArray();
                 return res;
             }
@@ -166,6 +115,30 @@ namespace Deanon.db
                     .Cypher
                     .Match("(a)")
                     .Return(a => a.As<Person>());
+                var res = query.Results.ToArray();
+                return res;
+            }
+            catch (Exception ex)
+            {
+                Logger.Out("Query error: {0}", MessageType.Error, ex.Message);
+                return null;
+            }
+        }
+
+        public Person[] GetUsersRelated(int userId, EnterType type)
+        {
+            //match (m:Person{Id:169033204})--(f) return f
+            try
+            {
+                var query = _db
+                    .Cypher
+                    .Match("(m:Person { Id: {id} })-[:" + RelationString.ToString(type) + "]-(f)")
+                    .WithParams(new
+                    {
+                        id = userId
+                    }
+                    )
+                    .Return(f => f.As<Person>());
                 var res = query.Results.ToArray();
                 return res;
             }

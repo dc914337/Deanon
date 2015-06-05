@@ -51,7 +51,6 @@ C:\Users\Smirnyaga\GoogleDrive\code\C#\Deanon\Deanon\Deanon\bin\Debug\System.Net
 C:\Users\Smirnyaga\GoogleDrive\code\C#\Deanon\Deanon\Deanon\bin\Debug\Neo4jClient.pdb
 C:\Users\Smirnyaga\GoogleDrive\code\C#\Deanon\Deanon\Deanon\bin\Debug\Neo4jClient.xml
 C:\Users\Smirnyaga\GoogleDrive\code\C#\Deanon\Deanon\Deanon\bin\Debug\Newtonsoft.Json.xml
-C:\Users\Smirnyaga\GoogleDrive\code\C#\Deanon\Deanon\Deanon\bin\Debug\Newtonsoft.JsonVk.xml
 C:\Users\Smirnyaga\GoogleDrive\code\C#\Deanon\Deanon\Deanon\bin\Debug\System.Net.Http.Extensions.xml
 C:\Users\Smirnyaga\GoogleDrive\code\C#\Deanon\Deanon\Deanon\bin\Debug\System.Net.Http.Primitives.xml
 C:\Users\Smirnyaga\GoogleDrive\code\C#\Deanon\Deanon\Deanon\obj\Debug\Deanon.csproj.App.config

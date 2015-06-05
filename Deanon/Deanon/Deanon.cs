@@ -8,6 +8,7 @@ using Deanon.analyzer;
 using Deanon.db;
 using Deanon.db.datamodels.classes.entities;
 using Deanon.dumper;
+using Deanon.dumper.cache;
 using Deanon.dumper.vk;
 using Deanon.logger;
 
@@ -19,15 +20,28 @@ namespace Deanon
         private IDeanonDbWorker _dbWorker;
         private IDeanonSocNetworkWorker _snWorker;
         private int _userId;
+
+        private Cache _cache;
+
         private DbGraphAnalyzer _analyzer;
         public Deanon(IDeanonDbWorker dbWorker, IDeanonSocNetworkWorker snWorker, int userId)
         {
+            this._userId = userId;
             this._snWorker = snWorker;
             _dbWorker = dbWorker;
-            _dumper = new DeanonDumper(dbWorker, snWorker);
+            _cache = new Cache();
+            _dumper = new DeanonDumper(dbWorker, snWorker, _cache);
             _analyzer = new DbGraphAnalyzer(dbWorker);
-            this._userId = userId;
+            WarmUpCache();
         }
+
+        private void WarmUpCache()
+        {
+            Logger.Out("Warming up cache(people id's)", MessageType.DebugCache);
+            _cache.AddManyIds(_dbWorker.GetAllUsersIds());
+            Logger.Out("Cache is hot!", MessageType.DebugCache);
+        }
+
 
         public async Task InitialDump(DumpingDepth depth)
         {
@@ -54,17 +68,17 @@ namespace Deanon
 
         public async Task CompleteRelations()
         {
-            HashSet<long> userIds = new HashSet<long>(_dbWorker.GetAllUsersIds());
+            HashSet<int> userIds = new HashSet<int>(_dbWorker.GetAllUsersIds());
             //select people who have no out relations
             //var people = _analyzer.GetPeopleWithoutOutRelations();
             //get all people
-            var people = _analyzer.GetAllPeople();
+            var people = _analyzer.GetPeopleWithoutOutRelations();
             int count = 0;
             foreach (var person in people)
             {
                 count++;
                 Logger.Out("Completing: {0}. {1}/{2} done!", MessageType.Verbose, person.Id, count, people.Count());
-                var friends=new List<Person>();
+                var friends = new List<Person>();
                 try
                 {
                     friends = await _snWorker.GetFriends(person);
@@ -79,19 +93,22 @@ namespace Deanon
                     {
                         try
                         {
-                            _dbWorker.AddPotentialFriend(person, friend, EnterType.Friend);
-                            Logger.Out("Added relation: {0} --> {1}", MessageType.Verbose, person.Id, friend.Id);
+                            _dbWorker.AddRelation(person, friend, EnterType.Friend);
                         }
                         catch (Exception ex)
                         {
                             Logger.Out("Error adding relation: {0} --> {1}. Message: {2}", MessageType.Error, person.Id, friend.Id, ex.Message);
                         }
 
-
                     }
                 }
             }
 
+        }
+
+        public Person[] GetFriends()
+        {
+            return _analyzer.GetUsersFriends(_userId);
         }
     }
 }

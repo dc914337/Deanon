@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Deanon.db;
 using Deanon.db.datamodels;
 using Deanon.db.datamodels.classes.entities;
+using Deanon.dumper.cache;
 using Deanon.dumper.vk;
 using Deanon.logger;
 using VKSharp;
@@ -23,19 +24,22 @@ namespace Deanon.dumper
     {
         private readonly IDeanonDbWorker _neo4JWorker;
         private readonly IDeanonSocNetworkWorker _vkWorker;
+        private readonly Cache _dbcache;
 
-
-        public DeanonDumper(IDeanonDbWorker neo4JWorker, IDeanonSocNetworkWorker vkWorker)
+        public DeanonDumper(IDeanonDbWorker neo4JWorker, IDeanonSocNetworkWorker vkWorker, Cache cache)
         {
             _neo4JWorker = neo4JWorker;
             _neo4JWorker.Connect();
             _vkWorker = vkWorker;
+            _dbcache = cache;
         }
 
         public async Task DumpUser(int userId, DumpingDepth depth)
         {
-            var user = await _vkWorker.GetPerson(userId);
-            _neo4JWorker.AddPerson(user);
+            Person user = await _vkWorker.GetPerson(userId);
+
+            if (!_dbcache.CheckAddPersonId(userId))
+                _neo4JWorker.AddPerson(user);
 
             await CollectPotentialFriendsRecursive(user, depth, new Dictionary<int, Person>());
         }
@@ -162,7 +166,11 @@ namespace Deanon.dumper
         {
             foreach (var pFriend in potentialFriends)
             {
-                _neo4JWorker.AddPotentialFriend(user, pFriend, type);
+                if (!_dbcache.CheckAddPersonId(pFriend.Id))
+                {
+                    _neo4JWorker.AddPerson(pFriend);
+                }
+                _neo4JWorker.AddRelation(user, pFriend, type);
                 await CollectPotentialFriendsRecursive(pFriend, depth, trace);
             }
         }

@@ -13,10 +13,11 @@ namespace Deanon.db
     {
         void Connect();
         Node<Person> AddPerson(Person user);
-        Node<Person> AddPotentialFriend(Person user, Person pFriend, EnterType type);
+        void AddRelation(Person main, Person friend, EnterType type);
         Person[] GetPeopleFromMinCycles();
         Person[] GetPeopleWithoutOutRelations();
-        long[] GetAllUsersIds();
+        int[] GetAllUsersIds();
         Person[] GetAllPeople();
+        Person[] GetUsersRelated(int userId, EnterType type);
     }
 }

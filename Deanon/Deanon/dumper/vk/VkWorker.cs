@@ -1,14 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Deanon.db.datamodels;
 using Deanon.db.datamodels.classes.entities;
 using VKSharp;
 using VKSharp.Core.Entities;
+using VKSharp.Data.Executors;
 using VKSharp.Data.Parameters;
 using VKSharp.Data.Request;
+using VKSharp.Helpers;
+using VKSharp.Helpers.Exceptions;
+using Newtonsoft.Json;
 
 namespace Deanon.dumper.vk
 {
@@ -118,14 +126,15 @@ namespace Deanon.dumper.vk
         {
             var vk = GetNewVkApi();
             Sleep();
-            return (await vk.Friends.Get(userId: user.Id, fields: UserFields.Anything)).Items.Select(Mapper.MapPerson).ToList();
+            return (await vk.Friends.Get(userId: user.Id, fields: UserFields.Anything, count: 1000000)).Items.Select(Mapper.MapPerson).ToList();
         }
+
 
         public async Task<List<Person>> GetFollowers(Person user)
         {
             var vk = GetNewVkApi();
             Sleep();
-            return (await vk.Users.GetFollowers(userId: user.Id, fields: UserFields.Anything)).Items.Select(Mapper.MapPerson).ToList();
+            return (await vk.Users.GetFollowers(userId: user.Id, fields: UserFields.Anything, count: 1000)).Items.Select(Mapper.MapPerson).ToList();//fix
         }
 
         private async Task<EntityList<Post>> GetBigWall(int ownerId, int offset)
