@@ -1,26 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Deanon.db.datamodels;
 using Deanon.db.datamodels.classes.entities;
+using Deanon.dumper;
 using VKSharp;
 using VKSharp.Core.Entities;
-using VKSharp.Data.Executors;
 using VKSharp.Data.Parameters;
 using VKSharp.Data.Request;
-using VKSharp.Helpers;
-using VKSharp.Helpers.Exceptions;
-using Newtonsoft.Json;
 
-namespace Deanon.dumper.vk
+namespace Deanon.vk
 {
-    class VkWorker : IDeanonSocNetworkWorker
+    class VkWorker
     {
         private readonly VkTokenRepository _tokenRepo;
         private const int PostsPerTime = 2500;
@@ -50,15 +44,11 @@ namespace Deanon.dumper.vk
                     }))[0]);
         }
 
-
         public async Task<List<Person>> GetPeople(int[] userIds)
         {
-            if (userIds.Length < 1)
-                return new List<Person>();
             var vk = GetNewVkApi();
             Sleep();
-            var users = await vk.Users.Get(userIds: userIds);
-            return users.Select(Mapper.MapPerson).ToList();
+            return (await vk.Users.Get(userIds: userIds)).Select(Mapper.MapPerson).ToList();
         }
 
 
@@ -101,8 +91,7 @@ namespace Deanon.dumper.vk
                 {
                     pointer = 0;
                     Sleep();
-                    var manyCommentsEntity = await GetManyComments(userId, postIdsDose);
-                    comments.AddRange(manyCommentsEntity.Items);
+                    comments.AddRange((await GetManyComments(userId, postIdsDose)).Items);
                     postIdsDose.Clear();
                 }
             }
@@ -111,7 +100,6 @@ namespace Deanon.dumper.vk
                 Sleep();
                 comments.AddRange((await GetManyComments(userId, postIdsDose)).Items);
             }
-
 
             return comments;
         }
@@ -129,15 +117,14 @@ namespace Deanon.dumper.vk
         {
             var vk = GetNewVkApi();
             Sleep();
-            return (await vk.Friends.Get(userId: user.Id, fields: UserFields.Anything, count: 1000000)).Items.Select(Mapper.MapPerson).ToList();
+            return (await vk.Friends.Get(userId: user.Id, fields: UserFields.Anything)).Items.Select(Mapper.MapPerson).ToList();
         }
-
 
         public async Task<List<Person>> GetFollowers(Person user)
         {
             var vk = GetNewVkApi();
             Sleep();
-            return (await vk.Users.GetFollowers(userId: user.Id, fields: UserFields.Anything, count: 1000)).Items.Select(Mapper.MapPerson).ToList();//fix
+            return (await vk.Users.GetFollowers(userId: user.Id, fields: UserFields.Anything)).Items.Select(Mapper.MapPerson).ToList();
         }
 
         private async Task<EntityList<Post>> GetBigWall(int ownerId, int offset)
@@ -236,8 +223,7 @@ namespace Deanon.dumper.vk
                 Parameters = parameters
             };
             Sleep();
-            var result = (await vk.Executor.ExecAsync(req)).Response;
-            return result;
+            return (await vk.Executor.ExecAsync(req)).Response;
         }
 
 

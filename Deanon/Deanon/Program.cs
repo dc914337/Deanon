@@ -41,6 +41,16 @@ namespace Deanon
 
             _db = InitDb();
             _sn = InitVk();
+
+
+           /* int userId = 268894603;
+            var task = _sn.GetAllPosts(userId);
+            task.Wait();
+            var posts = task.Result;
+            var postedPFriendsIds = posts.Select(a => a.FromId).Where(b => b != userId).Distinct().ToArray();
+            */
+
+
             Person[] people;
 
             var _watches = StartOperation();
