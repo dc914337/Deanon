@@ -34,12 +34,15 @@ namespace Deanon.db
             _db.Cypher
                     .Create("INDEX ON :Person(Id)")
                     .ExecuteWithoutResults();
+            _db.Cypher
+                    .Create("INDEX ON :Person(Deleted)")
+                    .ExecuteWithoutResults();
         }
 
 
         public Node<Person> AddPerson(Person mainPerson)
         {
-            Logger.Out("Adding person to DB: {0}", MessageType.Debug, mainPerson.Url);
+            Logger.Out("Adding person(Id): {0}", MessageType.Debug, mainPerson.Id);
             return _db.Cypher
                 .Merge("(person:Person { Id: {id} })")
                 .OnCreate()
@@ -56,7 +59,7 @@ namespace Deanon.db
 
         public void AddRelation(Person main, Person friend, EnterType type)
         {
-            Logger.Out("Adding relation to DB: {0} --> {1}", MessageType.Debug, main.Url, friend.Url);
+            Logger.Out("Adding relation(Ids): {0} --> {1}", MessageType.Debug, main.Id, friend.Id);
             //create 
             _db.Cypher
                   .Match("(mainPerson:Person)", "(friendPerson:Person)")
@@ -71,10 +74,9 @@ namespace Deanon.db
         {
             try
             {
-
                 var query = _db
                     .Cypher
-                    .Match("(a)-[*3]->(a)")
+                    .Match("(a:Person{Deleted:false})-[*3]->(a:Person{Deleted:false})")
                     .ReturnDistinct(a => a.As<Person>());
                 var res = query.Results.ToArray();
                 return res;
@@ -87,7 +89,14 @@ namespace Deanon.db
 
         }
 
+        public void ClearDatabase()
+        {
+            _db.Cypher
+                   .Match("(n)").OptionalMatch("(n)-[r]-()").Delete("n,r")
+                    .ExecuteWithoutResults();
+        }
 
+        //includes deleted
         public int[] GetAllUsersIds()
         {
             try
@@ -107,13 +116,13 @@ namespace Deanon.db
             }
         }
 
-        public Person[] GetAllPeople()
+        public Person[] GetAllNotDeletedPeople()
         {
             try
             {
                 var query = _db
                     .Cypher
-                    .Match("(a)")
+                    .Match("(a:Person{Deleted:false})")
                     .Return(a => a.As<Person>());
                 var res = query.Results.ToArray();
                 return res;
@@ -132,7 +141,7 @@ namespace Deanon.db
             {
                 var query = _db
                     .Cypher
-                    .Match("(m:Person { Id: {id} })-[:" + RelationString.ToString(type) + "]-(f)")
+                    .Match("(m:Person { Id: {id},Deleted:false})-[:" + RelationString.ToString(type) + "]-(f)")
                     .WithParams(new
                     {
                         id = userId
@@ -149,15 +158,34 @@ namespace Deanon.db
             }
         }
 
-        public Person[] GetPeopleWithoutOutRelations()
+
+
+        public Person[] GetHiddenFriendsOfUser(int id)
         {
-            //MATCH (a)-->(l) WHERE NOT (l)-->() return l
+            var query = _db
+                   .Cypher
+                   .Match("(a:Person{Deleted:false})-[:HAVE_FRIEND]->(b:Person{Id:{id},Deleted:false})")
+                   .Where("NOT (b)-[:HAVE_FRIEND]->(a)")
+                   .WithParams(new
+                   {
+                       id = id
+                   }
+                   )
+                   .Return(a => a.As<Person>());
+            var res = query.Results.ToArray();
+            return res;
+        }
+
+        public Person[] GetPeopleWithoutOutRelationsAndNotDeleted()
+        {
+            //MATCH (a)-->(l:Person{Deleted:false}) WHERE NOT (l:Person{Deleted:false})-->() return l
+            //MATCH (a)-->(l:Person{Deleted:false}) WHERE NOT (l:Person{Deleted:false})-->() RETURN l
             try
             {
                 var query = _db
                     .Cypher
-                    .Match("(a)-->(l)")
-                    .Where("NOT (l)-->()")
+                    .Match("(a)-->(l:Person{Deleted:false})")
+                    .Where("NOT (l:Person{Deleted:false})-->()")
                     .Return(l => l.As<Person>());
                 var res = query.Results.ToArray();
                 return res;

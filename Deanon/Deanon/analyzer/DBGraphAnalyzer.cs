@@ -25,7 +25,7 @@ namespace Deanon.analyzer
 
         public Person[] GetPeopleWithoutOutRelations()
         {
-            var v = _neo4J.GetPeopleWithoutOutRelations().GroupBy(a => a.Id).Select(b => b.First()).ToArray();
+            var v = _neo4J.GetPeopleWithoutOutRelationsAndNotDeleted().GroupBy(a => a.Id).Select(b => b.First()).ToArray();
             return v;
         }
 
@@ -35,7 +35,7 @@ namespace Deanon.analyzer
         }
         public Person[] GetAllPeople()
         {
-            var v = _neo4J.GetAllPeople().GroupBy(a => a.Id).Select(b => b.First()).ToArray();
+            var v = _neo4J.GetAllNotDeletedPeople().GroupBy(a => a.Id).Select(b => b.First()).ToArray();
             return v;
         }
     }

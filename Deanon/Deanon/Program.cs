@@ -34,67 +34,105 @@ namespace Deanon
 
         static void Main(string[] args)
         {
+            ConfigureLogger();
+
+            InitDBAndVK();
+
+
+
+            var _watches = StartOperation();
+            var deanon = DumpUser();
+
+
+            if (!SkipRequest("small dump"))
+            {
+                SmallDump(_watches, deanon);
+                if (ExitRequest())
+                    return;
+            }
+
+            if (!SkipRequest("big dump"))
+            {
+                var depth = GetDepth();
+                BigDump(deanon, depth);
+            }
+
+            while (true)
+            {
+                if (ExitRequest())
+                    return;
+                ExpansionDump(deanon);
+            }
+        }
+
+        private static void ExpansionDump(Deanon deanon)
+        {
+            Stopwatch _watches;
+            _watches = StartOperation();
+            deanon.ExpansionDump(
+                new DumpingDepth(
+                    new List<Depth>()
+                    {
+                        new Depth( EnterType.Friend, 1 ),
+                        new Depth( EnterType.Follower, 0 ),
+                        new Depth( EnterType.Post, 0 ),
+                        new Depth( EnterType.Comments, 0 ),
+                        new Depth( EnterType.Likes, 0 )
+                    })); //10
+            CompleteRelations(deanon);
+            Person[] hiddenFriendsExpansion = deanon.GetHiddenFriends(); //12
+            OutputUsers(hiddenFriendsExpansion); //12
+            RestartWatchesAndShowTime(_watches, "expansion dump and complete relations");
+        }
+
+        private static void BigDump(Deanon deanon, DumpingDepth depth)
+        {
+            Stopwatch _watches;
+            _watches = StartOperation();
+            deanon.InitialDump(depth).Wait(); //7
+            CompleteRelations(deanon);
+            Person[] hiddenFriendsBig = deanon.GetHiddenFriends(); //8
+            OutputUsers(hiddenFriendsBig); //9
+            RestartWatchesAndShowTime(_watches, "big initial dump and complete relations");
+        }
+
+
+        private static void CompleteRelations(Deanon deanon)
+        {
+            Logger.Out("Do you want to complete all relations?(y/n)", MessageType.Verbose);
+            bool full = Console.ReadLine().ToLower().Trim() == "y";
+            deanon.CompleteRelations(full).Wait();
+        }
+
+
+
+        private static void SmallDump(Stopwatch _watches, Deanon deanon)
+        {
+            _watches = RestartWatchesAndShowTime(_watches, "startup");
+
+            deanon.InitialDump(InitialDepth).Wait(); //2
+            CompleteRelations(deanon);
+            Person[] hiddenFriendsSmall = deanon.GetHiddenFriends(); //4
+            OutputUsers(hiddenFriendsSmall); //4
+
+            RestartWatchesAndShowTime(_watches, "small dump initial user and complete relations");
+        }
+
+        private static void InitDBAndVK()
+        {
+            _db = InitDb();
+            _sn = InitVk();
+        }
+
+        static void ConfigureLogger()
+        {
             Logger.AddTypeToUotput(MessageType.Error);
             Logger.AddTypeToUotput(MessageType.Verbose);
             Logger.AddTypeToUotput(MessageType.DebugCache);
             Logger.AddTypeToUotput(MessageType.Time);
-
-            _db = InitDb();
-            _sn = InitVk();
-
-
-           /* int userId = 268894603;
-            var task = _sn.GetAllPosts(userId);
-            task.Wait();
-            var posts = task.Result;
-            var postedPFriendsIds = posts.Select(a => a.FromId).Where(b => b != userId).Distinct().ToArray();
-            */
-
-
-            Person[] people;
-
-            var _watches = StartOperation();
-            var deanon = DumpUser();//1
-
-            _watches = RestartWatchesAndShowTime(_watches, "startup");
-
-            deanon.InitialDump(InitialDepth).Wait();//2
-            deanon.CompleteRelations().Wait();//3
-            people = deanon.GetFriends();//4
-            OutputUsers(people);//4
-
-            _watches = RestartWatchesAndShowTime(_watches, "small dump initial user and complete relations");
-
-            if (ExitRequest())//5
-                return;
-            var depth = GetDepth();//6
-
-            _watches = StartOperation();
-            deanon.InitialDump(depth).Wait();//7
-            deanon.CompleteRelations().Wait();
-            people = deanon.GetFriends();//8
-            OutputUsers(people);//9
-            RestartWatchesAndShowTime(_watches, "big initial dump and complete relations");
-            while (true)
-            {
-                if (ExitRequest())//10
-                    return;
-                _watches = StartOperation();
-                deanon.ExpansionDump(new DumpingDepth(
-                new List<Depth>()
-                {
-                    new Depth( EnterType.Friend, 1 ),
-                    new Depth( EnterType.Follower, 0 ),
-                    new Depth( EnterType.Post,0 ),
-                    new Depth( EnterType.Comments, 0 ),
-                    new Depth( EnterType.Likes, 0 )
-                }));//10
-                deanon.CompleteRelations().Wait();//11
-                people = deanon.GetFriends();//12
-                OutputUsers(people);//12
-                RestartWatchesAndShowTime(_watches, "expansion dump and complete relations");
-            }
+            Logger.AddTypeToUotput(MessageType.Debug);
         }
+
 
         static Stopwatch StartOperation()
         {
@@ -122,7 +160,13 @@ namespace Deanon
         static bool ExitRequest()
         {
             Logger.Out("Do you want to continue search? Y/N", MessageType.Verbose);
-            return Console.ReadKey().Key == ConsoleKey.N;
+            return Console.ReadLine().ToLower() != "y";
+        }
+
+        static bool SkipRequest(String stageName)
+        {
+            Logger.Out("Do you want to skip '{0}' stage? Y/N", MessageType.Verbose, stageName);
+            return Console.ReadLine().ToLower() == "y";
         }
 
         static DumpingDepth GetDepth()
@@ -155,7 +199,10 @@ namespace Deanon
         {
             Console.WriteLine("Enter user id to dump:");
             int userId = int.Parse(Console.ReadLine());
-            return new Deanon(_db, _sn, userId);
+
+            Console.WriteLine("Refresh database(Y/N):");
+            bool continueDump = Console.ReadLine().ToLower() != "y";
+            return new Deanon(_db, _sn, userId, continueDump);
         }
 
         static IDeanonDbWorker InitDb()

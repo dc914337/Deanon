@@ -12,6 +12,7 @@ namespace Deanon.logger
         Verbose,
         Debug,
         DebugCache,
-        Time
+        Time,
+        DebugDepth
     }
 }

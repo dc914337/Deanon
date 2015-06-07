@@ -48,7 +48,7 @@ namespace Deanon.dumper
         {
             Logger.Out("Current user: {0}", MessageType.Verbose, user.Url);
             Logger.Out("Trace level: {0}", MessageType.Verbose, trace.Count);
-            Logger.Out(depth.ToString(), MessageType.Debug);
+            Logger.Out(depth.ToString(), MessageType.DebugDepth);
 
             if (trace.ContainsKey(user.Id))
             {

@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Deanon.db.datamodels;
 using Deanon.db.datamodels.classes.entities;
+using Deanon.logger;
 using VKSharp;
 using VKSharp.Core.Entities;
 using VKSharp.Data.Executors;
@@ -127,6 +128,12 @@ namespace Deanon.dumper.vk
 
         public async Task<List<Person>> GetFriends(Person user)
         {
+            if (user.Deleted)
+            {
+                Logger.Out("Person {0} is deleted(or banned). Can't get friends", MessageType.Debug, user.Id);
+                return new List<Person>();
+            }
+
             var vk = GetNewVkApi();
             Sleep();
             return (await vk.Friends.Get(userId: user.Id, fields: UserFields.Anything, count: 1000000)).Items.Select(Mapper.MapPerson).ToList();

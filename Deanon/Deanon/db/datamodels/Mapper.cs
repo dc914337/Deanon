@@ -4,22 +4,24 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Deanon.db.datamodels.classes.entities;
+using VKSharp.Core.Enums;
 
 namespace Deanon.db.datamodels
 {
-	static class Mapper
-	{
-		private const String VkUrlPattern = "https://vk.com/id{0}";
-		public static Person MapPerson(VKSharp.Core.Entities.User vkUser)
-		{
-			return new Person()
-			{
-				Id = vkUser.Id,
-				Name = vkUser.FirstName,
-				Surname = vkUser.LastName,
-				Url = String.Format(VkUrlPattern, vkUser.Id)
-			};
-		}
+    static class Mapper
+    {
+        private const String VkUrlPattern = "https://vk.com/id{0}";
+        public static Person MapPerson(VKSharp.Core.Entities.User vkUser)
+        {
+            return new Person()
+            {
+                Id = vkUser.Id,
+                Name = vkUser.FirstName,
+                Surname = vkUser.LastName,
+                Url = String.Format(VkUrlPattern, vkUser.Id),
+                Deleted = vkUser.Deactivated != null
+            };
+        }
 
-	}
+    }
 }
