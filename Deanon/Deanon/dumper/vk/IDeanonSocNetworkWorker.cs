@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Deanon.db.datamodels.classes.entities;
-using VKSharp.Core.Entities;
+using kasthack.vksharp.DataTypes.Entities;
 
 namespace Deanon.dumper.vk
 {
-    interface IDeanonSocNetworkWorker
+    public interface IDeanonSocNetworkWorker
     {
         Task<Person> GetPerson(int userId);
         Task<List<Post>> GetAllPosts(int id);

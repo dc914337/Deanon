@@ -1,80 +1,70 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Deanon.dumper
 {
-    class DumpingDepth
+    public class DumpingDepth
     {
-        private Dictionary<EnterType, Depth> depths;
+        private readonly Dictionary<EnterType, Depth> depths;
 
         public DumpingDepth(List<Depth> init)
         {
-            depths = new Dictionary<EnterType, Depth>();
+            this.depths = new Dictionary<EnterType, Depth>();
             foreach (var depth in init)
             {
-                depths.Add(depth.type, depth);
+                this.depths.Add(depth.type, depth);
             }
         }
-
 
         public bool Enter(EnterType type)
         {
-            if (!CheckBottom(type))
+            if (!this.CheckBottom(type))
             {
-                LevelDown();
+                this.LevelDown();
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
-        public void StepOut()
-        {
-            LevelUp();
-        }
+        public void StepOut() => this.LevelUp();
 
-        private bool CheckBottom(EnterType type)
-        {
-            return depths[type].depth <= 0;
-        }
+        private bool CheckBottom(EnterType type) => this.depths[type].depth <= 0;
 
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
-            foreach (var depth in depths)
+            var sb = new StringBuilder();
+            foreach (var depth in this.depths)
             {
-                sb.AppendLine(RelationString.ToString(depth.Value.type) + " = " + depth.Value.depth);
+                sb.Append(RelationString.ToString(depth.Value.type)).Append(" = ").Append(depth.Value.depth).AppendLine();
             }
 
             return sb.ToString();
         }
 
-        public bool IsBottom()
-        {
-            return depths.All(depth => depth.Value.depth <= 0);
-        }
+        public bool IsBottom() => this.depths.All(depth => depth.Value.depth <= 0);
 
         private void LevelDown()
         {
-            foreach (var d in depths)
+            foreach (var d in this.depths)
             {
                 d.Value.depth--;
             }
         }
+
         private void LevelUp()
         {
-            foreach (var d in depths)
+            foreach (var d in this.depths)
             {
                 d.Value.depth++;
             }
         }
     }
 
-
-    class Depth
+    public class Depth
     {
         public Depth(EnterType type, int depth)
         {
