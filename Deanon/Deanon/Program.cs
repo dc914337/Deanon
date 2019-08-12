@@ -37,8 +37,8 @@ namespace Deanon
 
             InitDBAndVK();
 
-            var _watches = StartOperation();
-            var deanon = DumpUser();
+            var _watches = Stopwatch.StartNew();
+            var deanon = new Deanon(_db, _sn, config.Exec.UserId, config.Exec.ContinueFromSavePoint);
 
             if (config.Stages.Small)
             {
@@ -51,7 +51,7 @@ namespace Deanon
                 await BigDump(deanon, depth).ConfigureAwait(false);
             }
 
-            for (int i = 0; i < config.Exec.Expansions; i++)
+            for (var i = 0; i < config.Exec.Expansions; i++)
             {
                 await ExpansionDump(deanon).ConfigureAwait(false);
             }
@@ -59,7 +59,7 @@ namespace Deanon
 
         private static async Task ExpansionDump(Deanon deanon)
         {
-            var _watches = StartOperation();
+            var _watches = Stopwatch.StartNew();
             await deanon.ExpansionDump(
                 new DumpingDepth(
                     new List<Depth>()
@@ -78,7 +78,7 @@ namespace Deanon
 
         private static async Task BigDump(Deanon deanon, DumpingDepth depth)
         {
-            var _watches = StartOperation();
+            var _watches = Stopwatch.StartNew();
             await deanon.InitialDump(depth).ConfigureAwait(false); //7
             await CompleteRelations(deanon).ConfigureAwait(false);
             var hiddenFriendsBig = deanon.GetHiddenFriends(); //8
@@ -102,8 +102,8 @@ namespace Deanon
 
         private static void InitDBAndVK()
         {
-            _db = InitDb();
-            _sn = InitVk();
+            _db = new Neo4JWorker(config.DB.Address, config.DB.Port, config.DB.User, config.DB.Password);
+            _sn = new VkWorker(new List<string>() { config.VK.Token });
         }
 
         private static void ConfigureLogger()
@@ -115,18 +115,11 @@ namespace Deanon
             Logger.AddTypeToUotput(MessageType.Debug);
         }
 
-        private static Stopwatch StartOperation()
-        {
-            var sw = new Stopwatch();
-            sw.Start();
-            return sw;
-        }
-
         private static Stopwatch RestartWatchesAndShowTime(Stopwatch sw, string operationName)
         {
             sw.Stop();
             Logger.Out("Operation '{0}' completed in {1} seconds!", MessageType.Time, operationName, sw.ElapsedMilliseconds / 1000);
-            return StartOperation();
+            return Stopwatch.StartNew();
         }
 
         private static void OutputUsers(Person[] people)
@@ -135,12 +128,6 @@ namespace Deanon
             {
                 Logger.Out(person.Url, MessageType.Verbose);
             }
-        }
-
-        private static bool ExitRequest()
-        {
-            Logger.Out("Do you want to continue search? Y/N", MessageType.Verbose);
-            return !string.Equals(Console.ReadLine(), "y", StringComparison.OrdinalIgnoreCase);
         }
 
         private static DumpingDepth GetDepth()
@@ -156,11 +143,5 @@ namespace Deanon
                     new Depth( EnterType.Likes, cfg.Likes)
                 });
         }
-
-        private static Deanon DumpUser() => new Deanon(_db, _sn, config.Exec.UserId, config.Exec.ContinueFromSavePoint);
-
-        private static IDeanonDbWorker InitDb() => new Neo4JWorker(config.DB.Address, config.DB.Port, config.DB.User, config.DB.Password);
-
-        private static IDeanonSocNetworkWorker InitVk() => new VkWorker(new List<string>() { config.VK.Token });
     }
 }

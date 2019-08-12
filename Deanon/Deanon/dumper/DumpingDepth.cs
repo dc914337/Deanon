@@ -13,7 +13,7 @@ namespace Deanon.dumper
             this.depths = new Dictionary<EnterType, Depth>();
             foreach (var depth in init)
             {
-                this.depths.Add(depth.type, depth);
+                this.depths.Add(depth.Type, depth);
             }
         }
 
@@ -32,26 +32,26 @@ namespace Deanon.dumper
 
         public void StepOut() => this.LevelUp();
 
-        private bool CheckBottom(EnterType type) => this.depths[type].depth <= 0;
+        private bool CheckBottom(EnterType type) => this.depths[type].Value <= 0;
 
         public override string ToString()
         {
             var sb = new StringBuilder();
             foreach (var depth in this.depths)
             {
-                sb.Append(RelationString.ToString(depth.Value.type)).Append(" = ").Append(depth.Value.depth).AppendLine();
+                sb.Append(RelationString.ToString(depth.Value.Type)).Append(" = ").Append(depth.Value.Value).AppendLine();
             }
 
             return sb.ToString();
         }
 
-        public bool IsBottom() => this.depths.All(depth => depth.Value.depth <= 0);
+        public bool IsBottom() => this.depths.All(depth => depth.Value.Value <= 0);
 
         private void LevelDown()
         {
             foreach (var d in this.depths)
             {
-                d.Value.depth--;
+                d.Value.Value--;
             }
         }
 
@@ -59,20 +59,8 @@ namespace Deanon.dumper
         {
             foreach (var d in this.depths)
             {
-                d.Value.depth++;
+                d.Value.Value++;
             }
         }
-    }
-
-    public class Depth
-    {
-        public Depth(EnterType type, int depth)
-        {
-            this.type = type;
-            this.depth = depth;
-        }
-
-        public EnterType type { get; set; }
-        public int depth { get; set; }
     }
 }
