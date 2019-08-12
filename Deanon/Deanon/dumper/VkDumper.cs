@@ -5,8 +5,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Deanon.db;
 using Deanon.db.datamodels.classes.entities;
+using Deanon.dumper.vk;
 using Deanon.logger;
-using Deanon.vk;
 using MessageType = Deanon.logger.MessageType;
 
 namespace Deanon.dumper
