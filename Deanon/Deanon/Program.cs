@@ -30,7 +30,7 @@ namespace Deanon
                 new Depth(EnterType.Likes, 1 )
             });
 
-        private static async Task Main(string[] args)
+        private static async Task Main()
         {
             config = JsonConvert.DeserializeObject<Configuration.Config>(File.ReadAllText("config.json"));
             ConfigureLogger();
@@ -108,11 +108,11 @@ namespace Deanon
 
         private static void ConfigureLogger()
         {
-            Logger.AddTypeToUotput(MessageType.Error);
-            Logger.AddTypeToUotput(MessageType.Verbose);
-            Logger.AddTypeToUotput(MessageType.DebugCache);
-            Logger.AddTypeToUotput(MessageType.Time);
-            Logger.AddTypeToUotput(MessageType.Debug);
+            Logger.AddTypeToOutput(MessageType.Error);
+            Logger.AddTypeToOutput(MessageType.Verbose);
+            Logger.AddTypeToOutput(MessageType.DebugCache);
+            Logger.AddTypeToOutput(MessageType.Time);
+            Logger.AddTypeToOutput(MessageType.Debug);
         }
 
         private static Stopwatch RestartWatchesAndShowTime(Stopwatch sw, string operationName)

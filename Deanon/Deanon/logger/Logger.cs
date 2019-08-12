@@ -5,13 +5,13 @@ namespace Deanon.logger
 {
     internal static class Logger
     {
-        private static readonly List<MessageType> ToOutput = new List<MessageType>();
+        private static readonly HashSet<MessageType> ToOutput = new HashSet<MessageType>();
 
-        public static void AddTypeToUotput(MessageType type) => ToOutput.Add(type);
+        public static void AddTypeToOutput(MessageType type) => ToOutput.Add(type);
 
         public static void Out(string message, MessageType type, params object[] parameters)
         {
-           if (ToOutput.Contains(type))
+            if (ToOutput.Contains(type))
             {
                 Console.WriteLine(AddPrefix(type, string.Format(message, parameters)));
             }
