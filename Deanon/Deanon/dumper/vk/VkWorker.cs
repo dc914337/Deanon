@@ -22,7 +22,6 @@ namespace Deanon.dumper.vk
 
         public VkWorker(List<string> tokens)
         {
-            this.Sleep();
             this._tokenRepo = new TokenRepository();
             foreach (var token in tokens)
             {
@@ -32,7 +31,7 @@ namespace Deanon.dumper.vk
 
         public async Task<Person> GetPerson(int userId)
         {
-            this.Sleep();
+            await this.Sleep().ConfigureAwait(false);
             var vk = this.GetNewVkApi();
             return Mapper.MapPerson(
                 (await vk.Users.Get(
@@ -50,7 +49,7 @@ namespace Deanon.dumper.vk
             }
 
             var vk = this.GetNewVkApi();
-            this.Sleep();
+            await this.Sleep().ConfigureAwait(false);
             var users = await vk.Users.Get(userIds: userIds).ConfigureAwait(false);
             return users.Select(Mapper.MapPerson).ToList();
         }
@@ -69,7 +68,7 @@ namespace Deanon.dumper.vk
             posts.AddRange(firstBlock.Items);
             for (var i = 0; i < postsCount / PostsPerTime; i++)
             {
-                this.Sleep();
+                await this.Sleep().ConfigureAwait(false);
                 posts.AddRange((await this.GetBigWall(userId, (i + 1) * PostsPerTime).ConfigureAwait(false)).Items);
             }
 
@@ -96,7 +95,7 @@ namespace Deanon.dumper.vk
                 if (pointer == CommentsPostsPerTime)
                 {
                     pointer = 0;
-                    this.Sleep();
+                    await this.Sleep().ConfigureAwait(false);
                     var manyCommentsEntity = await this.GetManyComments(userId, postIdsDose).ConfigureAwait(false);
                     comments.AddRange(manyCommentsEntity.Items);
                     postIdsDose.Clear();
@@ -104,7 +103,7 @@ namespace Deanon.dumper.vk
             }
             if (postIdsDose.Any())
             {
-                this.Sleep();
+                await this.Sleep().ConfigureAwait(false);
                 comments.AddRange((await this.GetManyComments(userId, postIdsDose).ConfigureAwait(false)).Items);
             }
 
@@ -129,14 +128,14 @@ namespace Deanon.dumper.vk
             }
 
             var vk = this.GetNewVkApi();
-            this.Sleep();
+            await this.Sleep().ConfigureAwait(false);
             return (await vk.Friends.Get(userId: user.Id, fields: UserFields.Anything, count: 1000000).ConfigureAwait(false)).Items.Select(Mapper.MapPerson).ToList();
         }
 
         public async Task<List<Person>> GetFollowers(Person user)
         {
             var vk = this.GetNewVkApi();
-            this.Sleep();
+            await this.Sleep().ConfigureAwait(false);
             return (await vk.Users.GetFollowers(userId: user.Id, fields: UserFields.Anything, count: 1000).ConfigureAwait(false)).Items.Select(Mapper.MapPerson).ToList();//fix
         }
 
@@ -152,13 +151,13 @@ namespace Deanon.dumper.vk
                     { "owner_id", ownerId.ToString()}
             }
             };
-            this.Sleep();
+            await this.Sleep().ConfigureAwait(false);
             return (await vk.Executor.ExecAsync(req).ConfigureAwait(false)).Response;
         }
 
         private async Task<EntityList<int>> GetManyLikes(int ownerId, List<int> itemIds, string type)
         {
-            this.Sleep();
+            await this.Sleep().ConfigureAwait(false);
             var vk = this.GetNewVkApi();
             var parameters = new Dictionary<string, string>(){
                      {"owner_id", ownerId.ToString()},
@@ -232,7 +231,7 @@ namespace Deanon.dumper.vk
                 Token = vk.CurrentToken,
                 Parameters = parameters
             };
-            this.Sleep();
+            await this.Sleep().ConfigureAwait(false);
             var result = (await vk.Executor.ExecAsync(req).ConfigureAwait(false)).Response;
             return result;
         }
@@ -244,6 +243,6 @@ namespace Deanon.dumper.vk
             return api;
         }
 
-        private void Sleep() => Thread.Sleep(SleepMs);
+        private async Task Sleep() => await Task.Delay(SleepMs).ConfigureAwait(false);
     }
 }

@@ -2,19 +2,24 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
 using Deanon.db;
 using Deanon.db.datamodels.classes.entities;
 using Deanon.dumper;
 using Deanon.dumper.vk;
 using Deanon.logger;
+using Newtonsoft.Json;
 
 namespace Deanon
 {
+
     public static class Program
     {
+        private static Configuration.Config config;
+
         private static IDeanonDbWorker _db;
         private static IDeanonSocNetworkWorker _sn;
-
         private static readonly DumpingDepth InitialDepth = new DumpingDepth(
             new List<Depth>()
             {
@@ -25,8 +30,9 @@ namespace Deanon
                 new Depth(EnterType.Likes, 1 )
             });
 
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
+            config = JsonConvert.DeserializeObject<Configuration.Config>(File.ReadAllText("config.json"));
             ConfigureLogger();
 
             InitDBAndVK();
@@ -34,36 +40,27 @@ namespace Deanon
             var _watches = StartOperation();
             var deanon = DumpUser();
 
-            if (!SkipRequest("small dump"))
+            if (config.Stages.Small)
             {
-                SmallDump(_watches, deanon);
-                if (ExitRequest())
-                {
-                    return;
-                }
+                await SmallDump(_watches, deanon).ConfigureAwait(false);
             }
 
-            if (!SkipRequest("big dump"))
+            if (config.Stages.Big)
             {
                 var depth = GetDepth();
-                BigDump(deanon, depth);
+                await BigDump(deanon, depth).ConfigureAwait(false);
             }
 
-            while (true)
+            for (int i = 0; i < config.Exec.Expansions; i++)
             {
-                if (ExitRequest())
-                {
-                    return;
-                }
-
-                ExpansionDump(deanon);
+                await ExpansionDump(deanon).ConfigureAwait(false);
             }
         }
 
-        private static void ExpansionDump(Deanon deanon)
+        private static async Task ExpansionDump(Deanon deanon)
         {
             var _watches = StartOperation();
-            deanon.ExpansionDump(
+            await deanon.ExpansionDump(
                 new DumpingDepth(
                     new List<Depth>()
                     {
@@ -72,36 +69,31 @@ namespace Deanon
                         new Depth( EnterType.Post, 0 ),
                         new Depth( EnterType.Comments, 0 ),
                         new Depth( EnterType.Likes, 0 )
-                    })); //10
-            CompleteRelations(deanon);
+                    })).ConfigureAwait(false); //10
+            await CompleteRelations(deanon).ConfigureAwait(false);
             var hiddenFriendsExpansion = deanon.GetHiddenFriends(); //12
             OutputUsers(hiddenFriendsExpansion); //12
             RestartWatchesAndShowTime(_watches, "expansion dump and complete relations");
         }
 
-        private static void BigDump(Deanon deanon, DumpingDepth depth)
+        private static async Task BigDump(Deanon deanon, DumpingDepth depth)
         {
             var _watches = StartOperation();
-            deanon.InitialDump(depth).Wait(); //7
-            CompleteRelations(deanon);
+            await deanon.InitialDump(depth).ConfigureAwait(false); //7
+            await CompleteRelations(deanon).ConfigureAwait(false);
             var hiddenFriendsBig = deanon.GetHiddenFriends(); //8
             OutputUsers(hiddenFriendsBig); //9
             RestartWatchesAndShowTime(_watches, "big initial dump and complete relations");
         }
 
-        private static void CompleteRelations(Deanon deanon)
-        {
-            Logger.Out("Do you want to complete all relations?(y/n)", MessageType.Verbose);
-            var full = Console.ReadLine().ToLower().Trim() == "y";
-            deanon.CompleteRelations(full).Wait();
-        }
+        private static async Task CompleteRelations(Deanon deanon) => await deanon.CompleteRelations(config.Exec.CompleteRelations).ConfigureAwait(false);
 
-        private static void SmallDump(Stopwatch _watches, Deanon deanon)
+        private static async Task SmallDump(Stopwatch _watches, Deanon deanon)
         {
             _watches = RestartWatchesAndShowTime(_watches, "startup");
 
-            deanon.InitialDump(InitialDepth).Wait(); //2
-            CompleteRelations(deanon);
+            await deanon.InitialDump(InitialDepth).ConfigureAwait(false); //2
+            await CompleteRelations(deanon).ConfigureAwait(false);
             var hiddenFriendsSmall = deanon.GetHiddenFriends(); //4
             OutputUsers(hiddenFriendsSmall); //4
 
@@ -151,65 +143,24 @@ namespace Deanon
             return !string.Equals(Console.ReadLine(), "y", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool SkipRequest(string stageName)
-        {
-            Logger.Out("Do you want to skip '{0}' stage? Y/N", MessageType.Verbose, stageName);
-            return string.Equals(Console.ReadLine(), "y", StringComparison.OrdinalIgnoreCase);
-        }
-
         private static DumpingDepth GetDepth()
         {
-            Logger.Out("--You need to input dumping depth here--", MessageType.Verbose);
-            Logger.Out("Enter dumping depth for friends: ", MessageType.Verbose);
-            var friend = int.Parse(Console.ReadLine());
-            Logger.Out("Enter dumping depth for followers: ", MessageType.Verbose);
-            var follower = int.Parse(Console.ReadLine());
-            Logger.Out("Enter dumping depth for post: ", MessageType.Verbose);
-            var post = int.Parse(Console.ReadLine());
-            Logger.Out("Enter dumping depth for comments: ", MessageType.Verbose);
-            var comment = int.Parse(Console.ReadLine());
-            Logger.Out("Enter dumping depth for likes: ", MessageType.Verbose);
-            var like = int.Parse(Console.ReadLine());
-
+            var cfg = config.Depth;
             return new DumpingDepth(
                 new List<Depth>()
                 {
-                    new Depth( EnterType.Friend, friend ),
-                    new Depth( EnterType.Follower, follower ),
-                    new Depth( EnterType.Post, post ),
-                    new Depth( EnterType.Comments, comment ),
-                    new Depth( EnterType.Likes, like )
+                    new Depth( EnterType.Friend, cfg.Friends ),
+                    new Depth( EnterType.Follower, cfg.Followers ),
+                    new Depth( EnterType.Post, cfg.Post ),
+                    new Depth( EnterType.Comments, cfg.Comments ),
+                    new Depth( EnterType.Likes, cfg.Likes)
                 });
         }
 
-        private static Deanon DumpUser()
-        {
-            Console.WriteLine("Enter user id to dump:");
-            var userId = int.Parse(Console.ReadLine());
+        private static Deanon DumpUser() => new Deanon(_db, _sn, config.Exec.UserId, config.Exec.ContinueFromSavePoint);
 
-            Console.WriteLine("Refresh database(Y/N):");
-            var continueDump = !string.Equals(Console.ReadLine(), "y", StringComparison.OrdinalIgnoreCase);
-            return new Deanon(_db, _sn, userId, continueDump);
-        }
+        private static IDeanonDbWorker InitDb() => new Neo4JWorker(config.DB.Address, config.DB.Port, config.DB.User, config.DB.Password);
 
-        private static IDeanonDbWorker InitDb()
-        {
-            Console.WriteLine("Enter server address: ");
-            var address = Console.ReadLine();
-            Console.WriteLine("Enter server port: ");
-            var port = int.Parse(Console.ReadLine());
-            Console.WriteLine("Enter server login: ");
-            var login = Console.ReadLine();
-            Console.WriteLine("Enter server password: ");
-            var password = Console.ReadLine();
-
-            return new Neo4JWorker(address, port, login, password);
-        }
-
-        private static IDeanonSocNetworkWorker InitVk()
-        {
-            Console.WriteLine("Enter VK token: ");
-            return new VkWorker(new List<string>() { Console.ReadLine() });
-        }
+        private static IDeanonSocNetworkWorker InitVk() => new VkWorker(new List<string>() { config.VK.Token });
     }
 }

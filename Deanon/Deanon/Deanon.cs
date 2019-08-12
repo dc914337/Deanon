@@ -58,7 +58,7 @@ namespace Deanon
             Logger.Out("Done in {0} seconds", MessageType.Verbose, sw.ElapsedMilliseconds / 1000);
         }
 
-        public void ExpansionDump(DumpingDepth depth)
+        public async Task ExpansionDump(DumpingDepth depth)
         {
             var people = this._analyzer.GetPeopleInCycles();
             var maxCount = people.Length;
@@ -70,7 +70,7 @@ namespace Deanon
                 var sw = new Stopwatch();
                 sw.Start();
                 #endregion
-                this._dumper.DumpUser(person.Id, depth).Wait();
+                await this._dumper.DumpUser(person.Id, depth).ConfigureAwait(false);
                 sw.Stop(); Logger.Out("Expansion node added in {0} seconds", MessageType.Verbose, sw.Elapsed.TotalSeconds);
             }
         }
