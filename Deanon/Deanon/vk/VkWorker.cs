@@ -1,71 +1,71 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Deanon.db.datamodels;
 using Deanon.db.datamodels.classes.entities;
 using Deanon.dumper;
-using VKSharp;
-using VKSharp.Core.Entities;
-using VKSharp.Data.Parameters;
-using VKSharp.Data.Request;
+using Deanon.dumper.vk;
+using kasthack.vksharp;
+using kasthack.vksharp.DataTypes.Entities;
+using kasthack.vksharp.DataTypes.Enums;
+using kasthack.vksharp.Implementation;
 
 namespace Deanon.vk
 {
-    class VkWorker
+    public class VkWorker
     {
-        private readonly VkTokenRepository _tokenRepo;
+        private readonly dumper.TokenRepository _tokenRepo;
         private const int PostsPerTime = 2500;
         private const int LikesItemsPerTime = 25;
         private const int CommentsPostsPerTime = 25;
         private const int SleepMs = 333;
 
-        public VkWorker(List<String> tokens)
+        public VkWorker(List<string> tokens)
         {
-            Sleep();
-            _tokenRepo = new VkTokenRepository();
+            this.Sleep();
+            this._tokenRepo = new dumper.TokenRepository();
             foreach (var token in tokens)
             {
-                _tokenRepo.AddToken(token);
+                this._tokenRepo.AddToken(token);
             }
         }
 
         public async Task<Person> GetPerson(int userId)
         {
-            Sleep();
-            var vk = GetNewVkApi();
+            this.Sleep();
+            var vk = this.GetNewVkApi();
             return Mapper.MapPerson(
                 (await vk.Users.Get(
                     userIds: new int[]
                     {
                         userId
-                    }))[0]);
+                    }).ConfigureAwait(false))[0]);
         }
 
         public async Task<List<Person>> GetPeople(int[] userIds)
         {
-            var vk = GetNewVkApi();
-            Sleep();
-            return (await vk.Users.Get(userIds: userIds)).Select(Mapper.MapPerson).ToList();
+            var vk = this.GetNewVkApi();
+            this.Sleep();
+            return (await vk.Users.Get(userIds: userIds).ConfigureAwait(false)).Select(Mapper.MapPerson).ToList();
         }
-
 
         public async Task<List<Post>> GetAllPosts(int userId)
         {
-            var firstBlock = (await GetBigWall(userId, 0));
+            var firstBlock = (await this.GetBigWall(userId, 0).ConfigureAwait(false));
 
-            int postsCount = firstBlock.Count;
+            var postsCount = firstBlock.Count;
             if (postsCount == 0)
-                return new List<Post>();
-
-            List<Post> posts = new List<Post>(postsCount);
-            posts.AddRange(firstBlock.Items);
-            for (int i = 0; i < postsCount / PostsPerTime; i++)
             {
-                Sleep();
-                posts.AddRange((await GetBigWall(userId, (i + 1) * PostsPerTime)).Items);
+                return new List<Post>();
+            }
+
+            var posts = new List<Post>(postsCount);
+            posts.AddRange(firstBlock.Items);
+            for (var i = 0; i < postsCount / PostsPerTime; i++)
+            {
+                this.Sleep();
+                posts.AddRange((await this.GetBigWall(userId, (i + 1) * PostsPerTime).ConfigureAwait(false)).Items);
             }
 
             return posts;
@@ -73,16 +73,17 @@ namespace Deanon.vk
 
         public async Task<List<Comment>> GetAllCommentsForPosts(int userId, List<Post> posts)
         {
-            List<Comment> comments = new List<Comment>();
-            int[] postIdsWithComments = posts.Where(a => a.Comments.Count > 0).Select(a => (int)a.Id).ToArray();
+            var comments = new List<Comment>();
+            var postIdsWithComments = posts.Where(a => a.Comments.Count > 0).Select(a => (int)a.Id).ToArray();
 
-            int pointer = 0;
+            var pointer = 0;
 
             if (postIdsWithComments.Length == 0)
+            {
                 return comments;
+            }
 
-
-            List<int> postIdsDose = new List<int>();
+            var postIdsDose = new List<int>();
             foreach (var postId in postIdsWithComments)
             {
                 postIdsDose.Add(postId);
@@ -90,15 +91,15 @@ namespace Deanon.vk
                 if (pointer == CommentsPostsPerTime)
                 {
                     pointer = 0;
-                    Sleep();
-                    comments.AddRange((await GetManyComments(userId, postIdsDose)).Items);
+                    this.Sleep();
+                    comments.AddRange((await this.GetManyComments(userId, postIdsDose).ConfigureAwait(false)).Items);
                     postIdsDose.Clear();
                 }
             }
             if (postIdsDose.Any())
             {
-                Sleep();
-                comments.AddRange((await GetManyComments(userId, postIdsDose)).Items);
+                this.Sleep();
+                comments.AddRange((await this.GetManyComments(userId, postIdsDose).ConfigureAwait(false)).Items);
             }
 
             return comments;
@@ -106,31 +107,31 @@ namespace Deanon.vk
 
         public async Task<List<int>> GetAllPeopleLiked(int userId, List<Post> posts, List<Comment> comments)
         {
-            List<int> likedPosts = posts.Where(a => a.Likes.Count != 0).Select(a => (int)a.Id).ToList();
-            List<int> likedComments = comments.Where(a => a.Likes.Count != 0).Select(a => (int)a.Id).ToList();
-            List<int> peopleLiked = await GetAllLikes(userId, true, likedPosts);
-            peopleLiked.AddRange(await GetAllLikes(userId, false, likedComments));
+            var likedPosts = posts.Where(a => a.Likes.Count != 0).Select(a => (int)a.Id).ToList();
+            var likedComments = comments.Where(a => a.Likes.Count != 0).Select(a => (int)a.Id).ToList();
+            var peopleLiked = await this.GetAllLikes(userId, true, likedPosts).ConfigureAwait(false);
+            peopleLiked.AddRange(await this.GetAllLikes(userId, false, likedComments).ConfigureAwait(false));
             return peopleLiked.Distinct().ToList();
         }
 
         public async Task<List<Person>> GetFriends(Person user)
         {
-            var vk = GetNewVkApi();
-            Sleep();
-            return (await vk.Friends.Get(userId: user.Id, fields: UserFields.Anything)).Items.Select(Mapper.MapPerson).ToList();
+            var vk = this.GetNewVkApi();
+            this.Sleep();
+            return (await vk.Friends.Get(userId: user.Id, fields: UserFields.Anything).ConfigureAwait(false)).Items.Select(Mapper.MapPerson).ToList();
         }
 
         public async Task<List<Person>> GetFollowers(Person user)
         {
-            var vk = GetNewVkApi();
-            Sleep();
-            return (await vk.Users.GetFollowers(userId: user.Id, fields: UserFields.Anything)).Items.Select(Mapper.MapPerson).ToList();
+            var vk = this.GetNewVkApi();
+            this.Sleep();
+            return (await vk.Users.GetFollowers(userId: user.Id, fields: UserFields.Anything).ConfigureAwait(false)).Items.Select(Mapper.MapPerson).ToList();
         }
 
         private async Task<EntityList<Post>> GetBigWall(int ownerId, int offset)
         {
-            var vk = GetNewVkApi();
-            var req = new VKRequest<EntityList<Post>>()
+            var vk = this.GetNewVkApi();
+            var req = new Request<EntityList<Post>>()
             {
                 MethodName = "execute.wallGet25r",
                 Token = vk.CurrentToken,
@@ -139,48 +140,47 @@ namespace Deanon.vk
                     { "owner_id", ownerId.ToString()}
             }
             };
-            Sleep();
-            return (await vk.Executor.ExecAsync(req)).Response;
+            this.Sleep();
+            return (await vk.Executor.ExecAsync(req).ConfigureAwait(false)).Response;
         }
 
-
-
-        private async Task<EntityList<int>> GetManyLikes(int ownerId, List<int> itemIds, String type)
+        private async Task<EntityList<int>> GetManyLikes(int ownerId, List<int> itemIds, string type)
         {
-            Sleep();
-            var vk = GetNewVkApi();
-            Dictionary<string, string> parameters = new Dictionary<string, string>(){
+            this.Sleep();
+            var vk = this.GetNewVkApi();
+            var parameters = new Dictionary<string, string>(){
                      {"owner_id", ownerId.ToString()},
                      {"offset", "0"},
                      {"type",type}
             };
 
-            for (int i = 0; i < LikesItemsPerTime && i < itemIds.Count; i++)
+            for (var i = 0; i < LikesItemsPerTime && i < itemIds.Count; i++)
             {
                 parameters.Add("item_id" + (i + 1), itemIds[i].ToString());
             }
 
-            var req = new VKRequest<EntityList<int>>()
+            var req = new Request<EntityList<int>>()
             {
                 MethodName = "execute.getLikes25r",
                 Token = vk.CurrentToken,
                 Parameters = parameters
             };
-            return (await vk.Executor.ExecAsync(req)).Response;
+            return (await vk.Executor.ExecAsync(req).ConfigureAwait(false)).Response;
         }
-
 
         //post - true(post)/false(comment)
         private async Task<List<int>> GetAllLikes(int ownerId, bool post, List<int> ids)
         {
-            List<int> likers = new List<int>();
+            var likers = new List<int>();
 
-            int pointer = 0;
+            var pointer = 0;
 
             if (!ids.Any())
+            {
                 return likers;
+            }
 
-            List<int> itemIdsDose = new List<int>();
+            var itemIdsDose = new List<int>();
             foreach (var itemId in ids)
             {
                 itemIdsDose.Add(itemId);
@@ -188,62 +188,49 @@ namespace Deanon.vk
                 if (pointer == LikesItemsPerTime)
                 {
                     pointer = 0;
-                    likers.AddRange((await GetManyLikes(ownerId, itemIdsDose, post ? "post" : "comment")).Items);
+                    likers.AddRange((await this.GetManyLikes(ownerId, itemIdsDose, post ? "post" : "comment").ConfigureAwait(false)).Items);
                     itemIdsDose.Clear();
                 }
             }
             if (itemIdsDose.Any())
             {
-                likers.AddRange((await GetManyLikes(ownerId, itemIdsDose, post ? "post" : "comment")).Items);
+                likers.AddRange((await this.GetManyLikes(ownerId, itemIdsDose, post ? "post" : "comment").ConfigureAwait(false)).Items);
             }
 
             return likers;
         }
 
-
         //works only with 25 posts!
         private async Task<EntityList<Comment>> GetManyComments(int ownerId, List<int> postIds)
         {
-            var vk = GetNewVkApi();
-            Dictionary<string, string> parameters = new Dictionary<string, string>(){
+            var vk = this.GetNewVkApi();
+            var parameters = new Dictionary<string, string>(){
                      {"owner_id", ownerId.ToString()},
                      {"offset", "0"}
             };
 
-
-            for (int i = 0; i < CommentsPostsPerTime && i < postIds.Count; i++)
+            for (var i = 0; i < CommentsPostsPerTime && i < postIds.Count; i++)
             {
                 parameters.Add("post_id" + (i + 1), postIds[i].ToString());
             }
 
-            var req = new VKRequest<EntityList<Comment>>()
+            var req = new Request<EntityList<Comment>>()
             {
                 MethodName = "execute.get25Comments",
                 Token = vk.CurrentToken,
                 Parameters = parameters
             };
-            Sleep();
-            return (await vk.Executor.ExecAsync(req)).Response;
+            this.Sleep();
+            return (await vk.Executor.ExecAsync(req).ConfigureAwait(false)).Response;
         }
 
-
-
-
-
-
-        private VKApi GetNewVkApi()
+        private Api GetNewVkApi()
         {
-            var api = new VKApi();
-            api.AddToken(_tokenRepo.GetToken());
+            var api = new Api();
+            api.AddToken(this._tokenRepo.GetToken());
             return api;
         }
 
-
-        private void Sleep()
-        {
-            Thread.Sleep(SleepMs);
-        }
-
-
+        private void Sleep() => Thread.Sleep(SleepMs);
     }
 }

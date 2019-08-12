@@ -1,52 +1,41 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Deanon.logger;
 
 namespace Deanon.dumper.cache
 {
-    internal class Cache
+    public class Cache
     {
-        private HashSet<int> _peopleInBaseIds;
+        private readonly HashSet<int> peopleInBaseIds;
 
-        public Cache()
-        {
-            _peopleInBaseIds = new HashSet<int>();
-        }
+        public Cache() => this.peopleInBaseIds = new HashSet<int>();
 
         public void AddManyIds(int[] ids)
         {
             foreach (var id in ids)
             {
-                AddPersonId(id);
+                this.AddPersonId(id);
             }
-
         }
 
         public void AddPersonId(int id)
         {
-            if (!CheckContainsPersonId(id))
-                _peopleInBaseIds.Add(id);
+            if (!this.CheckContainsPersonId(id))
+            {
+                this.peopleInBaseIds.Add(id);
+            }
         }
 
         public bool CheckAddPersonId(int id)
         {
-            bool contains = CheckContainsPersonId(id);
-            if (!contains)
-                _peopleInBaseIds.Add(id);
+            var contains = this.CheckContainsPersonId(id);
+            this.peopleInBaseIds.Add(id);
             return contains;
         }
 
         public bool CheckContainsPersonId(int id)
         {
-            bool contains = _peopleInBaseIds.Contains(id);
-            if (contains)
-                Logger.Out("Cache hit! {0}", MessageType.DebugCache, id);
-            else
-                Logger.Out("Cache miss! {0}", MessageType.DebugCache, id);
-
+            var contains = this.peopleInBaseIds.Contains(id);
+            Logger.Out($"Cache {(contains ? "hit" : "miss")}! {{0}}", MessageType.DebugCache, id);
             return contains;
         }
     }

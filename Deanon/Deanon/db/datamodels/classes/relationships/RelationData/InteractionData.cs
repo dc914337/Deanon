@@ -1,26 +1,12 @@
-﻿using System;
-
-namespace Deanon.db.datamodels.classes.relationships.RelationData
+﻿namespace Deanon.db.datamodels.classes.relationships.RelationData
 {
-	class InteractionData
+    public class InteractionData
 	{
-		public InteractionType interactionType { get; private set; }
+        public InteractionType interactionType { get; }
 
-		public String TypeName => interactionType.ToString();
-		public int Weight => (int)interactionType;
+        public string TypeName => this.interactionType.ToString();
+		public int Weight => (int)this.interactionType;
 
-		public InteractionData(InteractionType type)
-		{
-			interactionType = type;
-		}
-	}
-
-	public enum InteractionType
-	{
-		Frientd = 1,
-		Posted = 2,
-		LeftComment = 3,
-		LikedPost = 4,
-		LikedComment = 5
-	};
+        public InteractionData(InteractionType type) => this.interactionType = type;
+    }
 }

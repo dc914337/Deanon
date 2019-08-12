@@ -1,38 +1,33 @@
-﻿using System;
+﻿using kasthack.vksharp;
 using System.Collections.Generic;
-using VKSharp.Data.Api;
 
 namespace Deanon.dumper.vk
 {
-    class VkTokenRepository
+    public class TokenRepository
     {
-        private List<VKToken> tokens;
+        private readonly List<Token> tokens;
 
         private int tokenPointer;
 
-        public VkTokenRepository()
+        public TokenRepository()
         {
-            tokenPointer = -1;
-            tokens = new List<VKToken>();
+            this.tokenPointer = -1;
+            this.tokens = new List<Token>();
         }
 
-        public bool ReadFromFile(String path)
-        {
-            return false;
-        }
+        public bool ReadFromFile(string path) => false;
 
-        public void AddToken(String token)
-        {
-            tokens.Add(new VKToken(token));
-        }
+        public void AddToken(string token) => this.tokens.Add(new Token(token));
 
-        public VKToken GetToken()
+        public Token GetToken()
         {
-            tokenPointer++;
-            if (tokenPointer >= tokens.Count)
-                tokenPointer = 0;
-            return tokens[tokenPointer];
-        }
+            this.tokenPointer++;
+            if (this.tokenPointer >= this.tokens.Count)
+            {
+                this.tokenPointer = 0;
+            }
 
+            return this.tokens[this.tokenPointer];
+        }
     }
 }

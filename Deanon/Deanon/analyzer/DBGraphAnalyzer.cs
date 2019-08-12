@@ -1,45 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq;
 using Deanon.db;
 using Deanon.db.datamodels.classes.entities;
 using Deanon.dumper;
 
 namespace Deanon.analyzer
 {
-    class DbGraphAnalyzer
+    public class DbGraphAnalyzer
     {
-        private IDeanonDbWorker _neo4J;
-        public DbGraphAnalyzer(IDeanonDbWorker neo4J)
-        {
-            _neo4J = neo4J;
-        }
+        private readonly IDeanonDbWorker _neo4J;
 
-        public Person[] GetPeopleInCycles()
-        {
-            var v = _neo4J.GetPeopleFromMinCycles().GroupBy(a => a.Id).Select(b => b.First()).ToArray();
-            return v;
-        }
+        public DbGraphAnalyzer(IDeanonDbWorker neo4J) => this._neo4J = neo4J;
 
-        public Person[] GetPeopleWithoutOutRelations()
-        {
-            var v = _neo4J.GetPeopleWithoutOutRelationsAndNotDeleted().GroupBy(a => a.Id).Select(b => b.First()).ToArray();
-            return v;
-        }
+        public Person[] GetPeopleInCycles() => this._neo4J.GetPeopleFromMinCycles().GroupBy(a => a.Id).Select(b => b.First()).ToArray();
 
-        public Person[] GetUsersFriends(int userId)
-        {
-            return _neo4J.GetUsersRelated(userId, EnterType.Friend).GroupBy(a => a.Id).Select(b => b.First()).ToArray();
-        }
-        public Person[] GetAllPeople()
-        {
-            var v = _neo4J.GetAllNotDeletedPeople().GroupBy(a => a.Id).Select(b => b.First()).ToArray();
-            return v;
-        }
+        public Person[] GetPeopleWithoutOutRelations() => this._neo4J.GetPeopleWithoutOutRelationsAndNotDeleted().GroupBy(a => a.Id).Select(b => b.First()).ToArray();
+
+        public Person[] GetUsersFriends(int userId) => this._neo4J.GetUsersRelated(userId, EnterType.Friend).GroupBy(a => a.Id).Select(b => b.First()).ToArray();
+
+        public Person[] GetAllPeople() => this._neo4J.GetAllNotDeletedPeople().GroupBy(a => a.Id).Select(b => b.First()).ToArray();
     }
-
-
-
 }

@@ -1,26 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace Deanon.dumper
 {
-    public enum EnterType
-    {
-        Friend,
-        Post,
-        Comments,
-        Follower,
-        Likes
-    }
-
     public static class RelationString
     {
-        private static Dictionary<EnterType, String> relationsDictionary;
-        static RelationString()
-        {
-            relationsDictionary = new Dictionary<EnterType, string>()
+        private static readonly Dictionary<EnterType, string> relationsDictionary;
+
+        static RelationString() => relationsDictionary = new Dictionary<EnterType, string>()
             {
                 { EnterType.Friend, "HAVE_FRIEND" },
                 { EnterType.Post, "HAVE_POST_FROM" },
@@ -28,11 +14,7 @@ namespace Deanon.dumper
                 { EnterType.Follower, "HAVE_FOLLOWER" },
                 { EnterType.Likes, "HAVE_LIKE" }
             };
-        }
 
-        public static String ToString(EnterType type)
-        {
-            return relationsDictionary[type];
-        }
+        public static string ToString(EnterType type) => relationsDictionary[type];
     }
 }

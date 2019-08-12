@@ -4,46 +4,40 @@ using Deanon.db.datamodels.classes.entities;
 using Deanon.dumper;
 using Deanon.logger;
 using Neo4jClient;
-using VKSharp.Core.Enums;
 using MessageType = Deanon.logger.MessageType;
 
 namespace Deanon.db
 {
     public class Neo4JWorker : IDeanonDbWorker
     {
-        private const String UrlPattern = "http://{0}:{1}@{2}:{3}/db/data";
+        private const string UrlPattern = "http://{0}:{1}@{2}:{3}/db/data";
         private GraphClient _db;
 
-
         private readonly string connectionUri;
-        public Neo4JWorker(String address, int port, String user, String password)
-        {
-            this.connectionUri = String.Format(UrlPattern, user, password, address, port);
-        }
+        public Neo4JWorker(string address, int port, string user, string password) => this.connectionUri = string.Format(UrlPattern, user, password, address, port);
 
         public void Connect()
         {
-            _db = new GraphClient(new Uri(connectionUri));
-            _db.Connect();
-            SetUp();
+            this._db = new GraphClient(new Uri(this.connectionUri));
+            this._db.Connect();
+            this.SetUp();
             Logger.Out("Succesfully connected to DB", MessageType.Debug);
         }
 
         private void SetUp()
         {
-            _db.Cypher
+            this._db.Cypher
                     .Create("INDEX ON :Person(Id)")
                     .ExecuteWithoutResults();
-            _db.Cypher
+            this._db.Cypher
                     .Create("INDEX ON :Person(Deleted)")
                     .ExecuteWithoutResults();
         }
 
-
         public Node<Person> AddPerson(Person mainPerson)
         {
             Logger.Out("Adding person(Id): {0}", MessageType.Debug, mainPerson.Id);
-            return _db.Cypher
+            return this._db.Cypher
                 .Merge("(person:Person { Id: {id} })")
                 .OnCreate()
                 .Set("person = {person}")
@@ -56,12 +50,11 @@ namespace Deanon.db
                .Single();
         }
 
-
         public void AddRelation(Person main, Person friend, EnterType type)
         {
             Logger.Out("Adding relation(Ids): {0} --> {1}", MessageType.Debug, main.Id, friend.Id);
             //create 
-            _db.Cypher
+            this._db.Cypher
                   .Match("(mainPerson:Person)", "(friendPerson:Person)")
                   .Where((Person mainPerson) => mainPerson.Id == main.Id)
                   .AndWhere((Person friendPerson) => friendPerson.Id == friend.Id)
@@ -74,35 +67,30 @@ namespace Deanon.db
         {
             try
             {
-                var query = _db
+                return this._db
                     .Cypher
                     .Match("(a:Person{Deleted:false})-[*3]->(a:Person{Deleted:false})")
-                    .ReturnDistinct(a => a.As<Person>());
-                var res = query.Results.ToArray();
-                return res;
+                    .ReturnDistinct(a => a.As<Person>())
+                    .Results
+                    .ToArray();
             }
             catch (Exception ex)
             {
                 Logger.Out("Query error: {0}", MessageType.Error, ex.Message);
                 return null;
             }
-
         }
 
-        public void ClearDatabase()
-        {
-            _db.Cypher
+        public void ClearDatabase() => this._db.Cypher
                    .Match("(n)").OptionalMatch("(n)-[r]-()").Delete("n,r")
                     .ExecuteWithoutResults();
-        }
 
         //includes deleted
         public int[] GetAllUsersIds()
         {
             try
             {
-
-                var query = _db
+                var query = this._db
                     .Cypher
                     .Match("(a)")
                     .ReturnDistinct(a => a.As<Person>().Id);
@@ -120,7 +108,7 @@ namespace Deanon.db
         {
             try
             {
-                var query = _db
+                var query = this._db
                     .Cypher
                     .Match("(a:Person{Deleted:false})")
                     .Return(a => a.As<Person>());
@@ -139,7 +127,7 @@ namespace Deanon.db
             //match (m:Person{Id:169033204})--(f) return f
             try
             {
-                var query = _db
+                var query = this._db
                     .Cypher
                     .Match("(m:Person { Id: {id},Deleted:false})-[:" + RelationString.ToString(type) + "]-(f)")
                     .WithParams(new
@@ -158,17 +146,15 @@ namespace Deanon.db
             }
         }
 
-
-
         public Person[] GetHiddenFriendsOfUser(int id)
         {
-            var query = _db
+            var query = this._db
                    .Cypher
                    .Match("(a:Person{Deleted:false})-[:HAVE_FRIEND]->(b:Person{Id:{id},Deleted:false})")
                    .Where("NOT (b)-[:HAVE_FRIEND]->(a)")
                    .WithParams(new
                    {
-                       id = id
+                       id
                    }
                    )
                    .Return(a => a.As<Person>());
@@ -182,7 +168,7 @@ namespace Deanon.db
             //MATCH (a)-->(l:Person{Deleted:false}) WHERE NOT (l:Person{Deleted:false})-->() RETURN l
             try
             {
-                var query = _db
+                var query = this._db
                     .Cypher
                     .Match("(a)-->(l:Person{Deleted:false})")
                     .Where("NOT (l:Person{Deleted:false})-->()")
