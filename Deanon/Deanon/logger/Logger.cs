@@ -1,29 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Deanon.logger
 {
-    static class Logger
+    internal static class Logger
     {
-        private static readonly List<MessageType> ToOutput = new List<MessageType>();
+        private static readonly HashSet<MessageType> ToOutput = new HashSet<MessageType>();
 
-        public static void AddTypeToUotput(MessageType type)
+        public static void AddTypeToOutput(MessageType type) => ToOutput.Add(type);
+
+        public static void Out(string message, MessageType type, params object[] parameters)
         {
-            ToOutput.Add(type);
+            if (ToOutput.Contains(type))
+            {
+                Console.WriteLine(AddPrefix(type, string.Format(message, parameters)));
+            }
         }
 
-        public static void Out(String message, MessageType type, params Object[] parameters)
-        {
-           if (ToOutput.Contains(type))
-                Console.WriteLine(AddPrefix(type, String.Format(message, parameters)));
-        }
-
-        private static String AddPrefix(MessageType type, String message)
-        {
-            return String.Format("[ {0} ] {1}", type, message);
-        }
+        private static string AddPrefix(MessageType type, string message) => string.Format("[ {0} ] {1}", type, message);
     }
 }

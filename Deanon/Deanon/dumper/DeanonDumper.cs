@@ -2,25 +2,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Deanon.db;
-using Deanon.db.datamodels;
 using Deanon.db.datamodels.classes.entities;
 using Deanon.dumper.cache;
 using Deanon.dumper.vk;
 using Deanon.logger;
-using VKSharp;
-using VKSharp.Core.Entities;
-using VKSharp.Core.Enums;
-using VKSharp.Data.Parameters;
-using VKSharp.Data.Request;
 using MessageType = Deanon.logger.MessageType;
-
 
 namespace Deanon.dumper
 {
-    class DeanonDumper
+    public class DeanonDumper
     {
         private readonly IDeanonDbWorker _neo4JWorker;
         private readonly IDeanonSocNetworkWorker _vkWorker;
@@ -28,20 +20,22 @@ namespace Deanon.dumper
 
         public DeanonDumper(IDeanonDbWorker neo4JWorker, IDeanonSocNetworkWorker vkWorker, Cache cache)
         {
-            _neo4JWorker = neo4JWorker;
-            _neo4JWorker.Connect();
-            _vkWorker = vkWorker;
-            _dbcache = cache;
+            this._neo4JWorker = neo4JWorker;
+            this._neo4JWorker.Connect();
+            this._vkWorker = vkWorker;
+            this._dbcache = cache;
         }
 
         public async Task DumpUser(int userId, DumpingDepth depth)
         {
-            Person user = await _vkWorker.GetPerson(userId);
+            var user = await this._vkWorker.GetPerson(userId).ConfigureAwait(false);
 
-            if (!_dbcache.CheckAddPersonId(userId))
-                _neo4JWorker.AddPerson(user);
+            if (!this._dbcache.CheckAddPersonId(userId))
+            {
+                this._neo4JWorker.AddPerson(user);
+            }
 
-            await CollectPotentialFriendsRecursive(user, depth, new Dictionary<int, Person>());
+            await this.CollectPotentialFriendsRecursive(user, depth, new Dictionary<int, Person>()).ConfigureAwait(false);
         }
 
         private async Task CollectPotentialFriendsRecursive(Person user, DumpingDepth depth, Dictionary<int, Person> trace)
@@ -56,32 +50,29 @@ namespace Deanon.dumper
                 return;
             }
 
-
             //add to trace
             trace.Add(user.Id, user);
 
             //add all friends that are not in neo4J
             if (depth.Enter(EnterType.Friend))
             {
-                await DumpFriendsRecursive(user, depth, trace);
+                await this.DumpFriendsRecursive(user, depth, trace).ConfigureAwait(false);
                 depth.StepOut();
             }
 
             //add all followers that are not in neo4J
             if (depth.Enter(EnterType.Follower))
             {
-                await DumpFollowersRecursive(user, depth, trace);
+                await this.DumpFollowersRecursive(user, depth, trace).ConfigureAwait(false);
                 depth.StepOut();
             }
 
-
             //dump recursive posts->comments->likes
-            await CheckAndDumpPostsCommentsLikesRecursive(user, depth, trace);
+            await this.CheckAndDumpPostsCommentsLikesRecursive(user, depth, trace).ConfigureAwait(false);
 
             //remove from trace
             trace.Remove(user.Id);
         }
-
 
         private async Task CheckAndDumpPostsCommentsLikesRecursive(Person user, DumpingDepth depth, Dictionary<int, Person> trace)
         {
@@ -93,12 +84,11 @@ namespace Deanon.dumper
                     return;
                 }
 
-                var posts = await _vkWorker.GetAllPosts(user.Id);
+                var posts = await this._vkWorker.GetAllPosts(user.Id).ConfigureAwait(false);
 
                 var postedPFriendsIds = posts.Select(a => a.FromId).Where(b => b != user.Id).Distinct().ToArray();
-                await AddPotentialFriendsRecursive(user, EnterType.Post, await _vkWorker.GetPeople(postedPFriendsIds), depth, trace);
+                await this.AddPotentialFriendsRecursive(user, EnterType.Post, await this._vkWorker.GetPeople(postedPFriendsIds).ConfigureAwait(false), depth, trace).ConfigureAwait(false);
                 depth.StepOut();
-
 
                 if (!depth.Enter(EnterType.Comments))
                 {
@@ -106,12 +96,11 @@ namespace Deanon.dumper
                     return;
                 }
 
-                var comments = await _vkWorker.GetAllCommentsForPosts(user.Id, posts);
+                var comments = await this._vkWorker.GetAllCommentsForPosts(user.Id, posts).ConfigureAwait(false);
 
                 var commentedPFriendsIds = comments.Select(a => a.FromId).Where(b => b != user.Id).Distinct().ToArray();
-                await AddPotentialFriendsRecursive(user, EnterType.Comments, await _vkWorker.GetPeople(commentedPFriendsIds), depth, trace);
+                await this.AddPotentialFriendsRecursive(user, EnterType.Comments, await this._vkWorker.GetPeople(commentedPFriendsIds).ConfigureAwait(false), depth, trace).ConfigureAwait(false);
                 depth.StepOut();
-
 
                 if (!depth.Enter(EnterType.Likes))
                 {
@@ -119,9 +108,9 @@ namespace Deanon.dumper
                     return;
                 }
 
-                var likes = await _vkWorker.GetAllPeopleLiked(user.Id, posts, comments);
+                var likes = await this._vkWorker.GetAllPeopleLiked(user.Id, posts, comments).ConfigureAwait(false);
                 var likedPFriendsIds = likes.Where(b => b != user.Id).Distinct().ToArray();
-                await AddPotentialFriendsRecursive(user, EnterType.Likes, await _vkWorker.GetPeople(likedPFriendsIds), depth, trace);
+                await this.AddPotentialFriendsRecursive(user, EnterType.Likes, await this._vkWorker.GetPeople(likedPFriendsIds).ConfigureAwait(false), depth, trace).ConfigureAwait(false);
                 depth.StepOut();
             }
             catch (Exception ex)
@@ -130,21 +119,18 @@ namespace Deanon.dumper
             }
         }
 
-
         private async Task DumpFriendsRecursive(Person user, DumpingDepth depth, Dictionary<int, Person> trace)
         {
             Logger.Out("Dumping friends for user: {0}", MessageType.Verbose, user.Url);
             try
             {
-                var friends = await _vkWorker.GetFriends(user);
-                await AddPotentialFriendsRecursive(user, EnterType.Friend, friends, depth, trace);
+                var friends = await this._vkWorker.GetFriends(user).ConfigureAwait(false);
+                await this.AddPotentialFriendsRecursive(user, EnterType.Friend, friends, depth, trace).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 Logger.Out("USER: {0} \r\n Message: {1}", MessageType.Error, user.Url, ex.Message);
             }
-
-
         }
 
         private async Task DumpFollowersRecursive(Person user, DumpingDepth depth, Dictionary<int, Person> trace)
@@ -152,8 +138,8 @@ namespace Deanon.dumper
             Logger.Out("Dumping followers for user: {0}", MessageType.Verbose, user.Url);
             try
             {
-                var followers = await _vkWorker.GetFollowers(user);
-                await AddPotentialFriendsRecursive(user, EnterType.Follower, followers, depth, trace);
+                var followers = await this._vkWorker.GetFollowers(user).ConfigureAwait(false);
+                await this.AddPotentialFriendsRecursive(user, EnterType.Follower, followers, depth, trace).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -161,19 +147,17 @@ namespace Deanon.dumper
             }
         }
 
-
         private async Task AddPotentialFriendsRecursive(Person user, EnterType type, List<Person> potentialFriends, DumpingDepth depth, Dictionary<int, Person> trace)
         {
             foreach (var pFriend in potentialFriends)
             {
-                if (!_dbcache.CheckAddPersonId(pFriend.Id))
+                if (!this._dbcache.CheckAddPersonId(pFriend.Id))
                 {
-                    _neo4JWorker.AddPerson(pFriend);
+                    this._neo4JWorker.AddPerson(pFriend);
                 }
-                _neo4JWorker.AddRelation(user, pFriend, type);
-                await CollectPotentialFriendsRecursive(pFriend, depth, trace);
+                this._neo4JWorker.AddRelation(user, pFriend, type);
+                await this.CollectPotentialFriendsRecursive(pFriend, depth, trace).ConfigureAwait(false);
             }
         }
-
     }
 }

@@ -1,0 +1,28 @@
+{
+  "VK": {
+    "Token": "token"
+  },
+  "DB": {
+    "Address": "server",
+    "Port": 0,
+    "User": "user",
+    "Password": "password"
+  },
+  "Depth": {
+    "Friends": 1,
+    "Followers": 1,
+    "Post": 1,
+    "Comments": 1,
+    "Likes": 1
+  },
+  "Stages": {
+    "Small": true,
+    "Big": true
+  },
+  "Exec": {
+    "UserId": 1,
+    "ContinueFromSavePoint": 1,
+    "CompleteRelations": 1,
+    "Expansions":  1
+  }
+}
